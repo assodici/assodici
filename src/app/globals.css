@@ -128,3 +128,9 @@
     @apply font-sans;
   }
 }
+
+@layer components {
+  .page-container {
+    @apply mx-auto w-full max-w-5xl px-4;
+  }
+}
