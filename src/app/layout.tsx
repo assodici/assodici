@@ -3,6 +3,8 @@ import {Geist_Mono, Noto_Sans} from "next/font/google"
 import "./globals.css"
 import {cn} from "@/lib/utils"
 import {AppShell} from "@/components/app-shell";
+import { Analytics } from "@vercel/analytics/next"
+import { SpeedInsights } from "@vercel/speed-insights/next"
 
 const notoSans = Noto_Sans({variable: "--font-sans", subsets: ["latin"]})
 
@@ -29,6 +31,8 @@ export default async function RootLayout({
                 "min-h-screen bg-background font-sans text-foreground antialiased"
             )}
         >
+        <Analytics/>
+        <SpeedInsights/>
         <AppShell>{children}</AppShell>
         </body>
         </html>
