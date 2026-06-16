@@ -7,7 +7,6 @@ import type {User} from "@supabase/supabase-js"
 
 const NAV = [
   {href: "/", label: "Accueil"},
-  {href: "/contact", label: "Contact"},
 ]
 
 type SiteHeaderProps = {
