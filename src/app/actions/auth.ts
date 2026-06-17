@@ -14,7 +14,7 @@ export async function login(
   const { error } = await supabase.auth.signInWithOtp({
     email: formData.get("email") as string,
     options: {
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3001"}/auth/confirm`,
+      emailRedirectTo: `${process.env.SITE_URL ?? (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "http://localhost:3001")}/auth/confirm`,
     },
   })
 
