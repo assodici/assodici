@@ -1,6 +1,7 @@
 "use client"
 
-import { useActionState } from "react"
+import { useActionState, useEffect } from "react"
+import { toast } from "sonner"
 import { login } from "@/app/actions/auth"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,6 +17,12 @@ import { LuLoader } from "react-icons/lu"
 
 export function LoginForm() {
   const [state, formAction, isPending] = useActionState(login, null)
+
+  useEffect(() => {
+    if (state && "error" in state) {
+      toast.error(state.error)
+    }
+  }, [state])
 
   if (state && "success" in state) {
     return (
@@ -57,12 +64,6 @@ export function LoginForm() {
               required
             />
           </div>
-
-          {state && "error" in state && (
-            <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              {state.error}
-            </p>
-          )}
 
           <Button type="submit" disabled={isPending} className="w-full">
             {isPending && <LuLoader className="animate-spin" />}

@@ -1,5 +1,7 @@
 import React, { ReactNode, Suspense } from "react"
 import { ThemeProvider as NextThemesProvider } from "next-themes"
+import { Toaster } from "@/components/ui/sonner"
+import { AppToast } from "@/components/app-toast"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { getUser } from "@/lib/supabase/server"
@@ -29,6 +31,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           <AuthShell>{children}</AuthShell>
         </Suspense>
       </div>
+      <Suspense fallback={null}>
+        <AppToast />
+      </Suspense>
+      <Toaster richColors position="top-right" duration={6000} />
     </ThemeProvider>
   )
 }
