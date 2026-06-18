@@ -1,6 +1,14 @@
 #!/usr/bin/env python3
-"""RNA Waldec → Supabase Postgres sync via DuckDB + psycopg2 chunked COPY."""
+"""RNA Waldec → Supabase Postgres sync.
 
+Architecture:
+  data.gouv.fr (Parquet) → DuckDB (stream) → psycopg2 chunked COPY → staging table
+  → atomic swap (TRUNCATE prod + INSERT from staging) → ingestion_runs audit log
+
+No intermediate files. Staging ensures prod table is never partially populated.
+"""
+
+import csv
 import io
 import os
 import sys
@@ -16,7 +24,7 @@ import requests
 WALDEC_RESOURCE_ID = "cc7b8f0c-45ea-4444-8b55-55d30bc34ac5"
 DATA_GOUV_REDIRECT = f"https://www.data.gouv.fr/api/1/datasets/r/{WALDEC_RESOURCE_ID}"
 MIN_ROW_COUNT = 1_000_000
-CHUNK_ROWS = 50_000  # rows per COPY transaction — keeps each statement under ~10s
+CHUNK_ROWS = 50_000  # rows per COPY transaction — each completes in <10s
 
 COLUMNS = [
     "id", "id_ex", "siret", "rup_mi", "gestion",
@@ -30,10 +38,7 @@ COLUMNS = [
     "dir_civilite", "siteweb", "publiweb", "observation",
 ]
 
-COPY_SQL = (
-    f"COPY associations ({', '.join(COLUMNS)}) "
-    "FROM STDIN WITH (FORMAT CSV, NULL '')"
-)
+COLS_SQL = ", ".join(COLUMNS)
 
 
 def connect_pg(db_url: str):
@@ -61,7 +66,8 @@ def fetch_metadata() -> tuple[str, str | None, int]:
     filesize = int(head.headers.get("Content-Length", 0))
     last_modified = (
         parsedate_to_datetime(raw_modified).astimezone(timezone.utc).isoformat()
-        if raw_modified else None
+        if raw_modified
+        else None
     )
     return download_url, last_modified, filesize
 
@@ -74,8 +80,13 @@ def download_parquet(url: str, path: str) -> None:
                 f.write(chunk)
 
 
-def parquet_to_csv(parquet_path: str, csv_path: str) -> int:
+def stream_parquet_to_staging(parquet_path: str, pg) -> int:
+    """Stream Parquet rows via DuckDB → psycopg2 chunked COPY into associations_staging.
+
+    Returns the number of rows inserted.
+    """
     duck = duckdb.connect()
+
     parquet_cols = {
         row[0]
         for row in duck.execute(
@@ -86,83 +97,68 @@ def parquet_to_csv(parquet_path: str, csv_path: str) -> int:
     if missing:
         print(f"WARNING: Parquet missing columns (will use NULL): {missing}", file=sys.stderr)
 
-    row_count: int = duck.execute(
-        f"SELECT count(*) FROM parquet_scan('{parquet_path}')"
-    ).fetchone()[0]
+    # All columns passed as strings — Postgres COPY handles type coercion
+    col_selects = [col if col in parquet_cols else "NULL" for col in COLUMNS]
 
-    col_selects = []
-    for col in COLUMNS:
-        if col not in parquet_cols:
-            col_selects.append("NULL")
-        elif col == "maj_time":
-            col_selects.append("TRY_CAST(maj_time AS TIMESTAMPTZ)")
-        else:
-            col_selects.append(col)
-
-    duck.execute(f"""
-        COPY (
-            SELECT {', '.join(col_selects)}
-            FROM parquet_scan('{parquet_path}')
-            WHERE titre IS NOT NULL
-        )
-        TO '{csv_path}' (FORMAT CSV, HEADER false, NULL '')
+    result = duck.execute(f"""
+        SELECT {', '.join(col_selects)}
+        FROM parquet_scan('{parquet_path}')
+        WHERE titre IS NOT NULL
     """)
-    duck.close()
-    return row_count
 
+    copy_sql = f"COPY associations_staging ({COLS_SQL}) FROM STDIN WITH (FORMAT CSV, NULL '')"
+    total = chunk_n = 0
 
-def copy_in_chunks(pg, csv_path: str) -> None:
-    buf = io.StringIO()
-    n = chunk_n = 0
-    with open(csv_path) as f:
-        for line in f:
-            buf.write(line)
-            n += 1
-            if n == CHUNK_ROWS:
-                buf.seek(0)
-                with pg.cursor() as cur:
-                    cur.copy_expert(COPY_SQL, buf)
-                pg.commit()
-                chunk_n += 1
-                print(f"  chunk {chunk_n} ({chunk_n * CHUNK_ROWS:,} rows)")
-                buf = io.StringIO()
-                n = 0
-    if n:
+    while True:
+        batch = result.fetchmany(CHUNK_ROWS)
+        if not batch:
+            break
+
+        buf = io.StringIO()
+        writer = csv.writer(buf, lineterminator="\n")
+        for row in batch:
+            writer.writerow(["" if v is None else v for v in row])
+
         buf.seek(0)
         with pg.cursor() as cur:
-            cur.copy_expert(COPY_SQL, buf)
+            cur.copy_expert(copy_sql, buf)
         pg.commit()
+
+        total += len(batch)
         chunk_n += 1
-        print(f"  chunk {chunk_n} final ({n:,} rows)")
+        print(f"  chunk {chunk_n} ({total:,} rows)")
+
+    duck.close()
+    return total
 
 
-def log_run(db_url: str, status: str, **kwargs) -> None:
-    fields = {"resource_id": WALDEC_RESOURCE_ID, "status": status, **kwargs}
-    cols = ", ".join(fields)
-    placeholders = ", ".join(["%s"] * len(fields))
+def log_run(db_url: str, status: str, last_modified, filesize: int, **kwargs) -> None:
+    extra_cols = list(kwargs.keys())
+    extra_vals = list(kwargs.values())
+    cols = ", ".join(["resource_id", "status", "last_modified", "filesize"] + extra_cols)
+    placeholders = ", ".join(["%s"] * (4 + len(extra_cols)))
     try:
         pg = connect_pg(db_url)
         with pg.cursor() as cur:
             cur.execute(
                 f"INSERT INTO ingestion_runs ({cols}) VALUES ({placeholders})",
-                list(fields.values()),
+                [WALDEC_RESOURCE_ID, status, last_modified, filesize] + extra_vals,
             )
         pg.commit()
         pg.close()
-    except Exception as log_err:
-        print(f"WARNING: failed to log run: {log_err}", file=sys.stderr)
+    except Exception as err:
+        print(f"WARNING: could not write ingestion_runs: {err}", file=sys.stderr)
 
 
 def main() -> None:
     db_url = os.environ["SUPABASE_DB_URL"]
-    parquet_path = csv_path = None
+    parquet_path = None
 
     print("Fetching metadata...")
     download_url, last_modified, filesize = fetch_metadata()
     print(f"  last_modified={last_modified}  filesize={filesize:,}")
 
     pg = connect_pg(db_url)
-
     with pg.cursor() as cur:
         cur.execute(
             "SELECT last_modified, filesize FROM ingestion_runs "
@@ -172,54 +168,70 @@ def main() -> None:
         )
         prev = cur.fetchone()
     pg.commit()
+    pg.close()
 
     if prev and str(prev[0]) == last_modified and prev[1] == filesize:
         print("Dataset unchanged — logging skip.")
-        log_run(db_url, "skipped", last_modified=last_modified, filesize=filesize)
-        pg.close()
+        log_run(db_url, "skipped", last_modified, filesize)
         return
-
-    pg.close()
 
     try:
         with tempfile.NamedTemporaryFile(suffix=".parquet", delete=False) as pf:
             parquet_path = pf.name
-        with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as cf:
-            csv_path = cf.name
 
         print(f"Downloading {filesize / 1e6:.1f} MB...")
         download_parquet(download_url, parquet_path)
 
-        print("Transforming Parquet → CSV...")
-        row_count = parquet_to_csv(parquet_path, csv_path)
-        print(f"  rows: {row_count:,}")
+        pg = connect_pg(db_url)
+
+        print("Preparing staging table...")
+        with pg.cursor() as cur:
+            cur.execute(
+                "DROP TABLE IF EXISTS associations_staging; "
+                "CREATE TABLE associations_staging (LIKE associations INCLUDING ALL);"
+            )
+        pg.commit()
+
+        print(f"Streaming into staging ({CHUNK_ROWS:,} rows/chunk)...")
+        row_count = stream_parquet_to_staging(parquet_path, pg)
+        print(f"  total: {row_count:,} rows")
+
         if row_count < MIN_ROW_COUNT:
             raise ValueError(f"Row count {row_count} below minimum {MIN_ROW_COUNT}")
 
-        print("Truncating associations...")
-        pg = connect_pg(db_url)
+        print("Validating staging row count...")
         with pg.cursor() as cur:
-            cur.execute("TRUNCATE associations")
+            cur.execute("SELECT count(*) FROM associations_staging")
+            staged = cur.fetchone()[0]
+        if staged != row_count:
+            raise ValueError(f"Staging count mismatch: expected {row_count}, got {staged}")
+
+        print("Swapping staging → production...")
+        with pg.cursor() as cur:
+            cur.execute(
+                "TRUNCATE associations; "
+                f"INSERT INTO associations ({COLS_SQL}) SELECT {COLS_SQL} FROM associations_staging;"
+            )
         pg.commit()
 
-        print(f"Loading into Postgres ({CHUNK_ROWS:,} rows/chunk)...")
-        copy_in_chunks(pg, csv_path)
+        print("Cleaning up staging table...")
+        with pg.cursor() as cur:
+            cur.execute("DROP TABLE IF EXISTS associations_staging")
+        pg.commit()
         pg.close()
 
-        log_run(db_url, "success",
-                last_modified=last_modified, filesize=filesize, row_count=row_count)
-        print(f"Done. {row_count:,} rows ingested.")
+        log_run(db_url, "success", last_modified, filesize, row_count=row_count)
+        print(f"Done. {row_count:,} rows in production.")
 
     except Exception as e:
         print(f"ERROR: {e}", file=sys.stderr)
-        log_run(db_url, "error",
-                last_modified=last_modified, filesize=filesize, error_message=str(e))
+        log_run(db_url, "error", last_modified, filesize, error_message=str(e))
         raise
 
     finally:
-        for path in filter(None, [parquet_path, csv_path]):
+        if parquet_path:
             try:
-                os.unlink(path)
+                os.unlink(parquet_path)
             except OSError:
                 pass
 
