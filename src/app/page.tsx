@@ -1,16 +1,19 @@
 import { createPublicClient } from '@/lib/supabase/server'
 
-export const dynamic = 'force-dynamic'
-
 export default async function Home() {
-  const supabase = createPublicClient()
-  const { data: lastRun } = await supabase
-    .from('ingestion_runs')
-    .select('imported_at, row_count')
-    .eq('status', 'success')
-    .order('imported_at', { ascending: false })
-    .limit(1)
-    .single()
+  let lastRun: { imported_at: string; row_count: number } | null = null
+
+  if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    const supabase = createPublicClient()
+    const { data } = await supabase
+      .from('ingestion_runs')
+      .select('imported_at, row_count')
+      .eq('status', 'success')
+      .order('imported_at', { ascending: false })
+      .limit(1)
+      .single()
+    lastRun = data
+  }
 
   const formattedDate = lastRun?.imported_at
     ? new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long' }).format(
