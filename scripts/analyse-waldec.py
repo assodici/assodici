@@ -9,6 +9,20 @@ import duckdb
 WALDEC_RESOURCE_ID = "cc7b8f0c-45ea-4444-8b55-55d30bc34ac5"
 DATA_GOUV_REDIRECT = f"https://www.data.gouv.fr/api/1/datasets/r/{WALDEC_RESOURCE_ID}"
 
+# Schema-defined max lengths from PDF spec — used to detect violations
+VARCHAR_LIMITS: dict[str, int] = {
+    "id": 10, "id_ex": 10, "siret": 14, "rup_mi": 11, "gestion": 4,
+    "nature": 1, "groupement": 1, "position": 1, "objet_social1": 6, "objet_social2": 6,
+    "titre": 250, "titre_court": 38,
+    "adrs_complement": 76, "adrs_numvoie": 10, "adrs_repetition": 1,
+    "adrs_typevoie": 5, "adrs_libvoie": 42, "adrs_distrib": 38,
+    "adrs_codeinsee": 5, "adrs_codepostal": 5, "adrs_libcommune": 45,
+    "adrg_declarant": 38, "adrg_complemid": 38, "adrg_complemgeo": 38,
+    "adrg_libvoie": 38, "adrg_distrib": 38, "adrg_codepostal": 5,
+    "adrg_achemine": 32, "adrg_pays": 38,
+    "dir_civilite": 2, "siteweb": 64, "publiweb": 1, "observation": 255,
+}
+
 
 def download(path: str) -> None:
     resp = requests.get(DATA_GOUV_REDIRECT, allow_redirects=False, timeout=30)
@@ -27,60 +41,46 @@ def analyse(path: str) -> None:
     duck = duckdb.connect()
     duck.execute(f"CREATE VIEW waldec AS SELECT * FROM parquet_scan('{path}')")
 
-    # Schema
-    print("\n=== SCHEMA ===")
+    total = duck.execute("SELECT count(*) FROM waldec").fetchone()[0]
+    parquet_cols = {r[0] for r in duck.execute("DESCRIBE waldec").fetchall()}
+
+    print(f"\n=== SCHEMA ({len(parquet_cols)} columns, {total:,} rows) ===")
     for row in duck.execute("DESCRIBE waldec").fetchall():
         print(f"  {row[0]:30s} {row[1]}")
 
-    # Row count + position distribution
-    print("\n=== ROW COUNT & POSITION ===")
-    total = duck.execute("SELECT count(*) FROM waldec").fetchone()[0]
-    print(f"  total rows: {total:,}")
+    print("\n=== POSITION DISTRIBUTION ===")
     for row in duck.execute(
         "SELECT position, count(*) FROM waldec GROUP BY position ORDER BY 2 DESC"
     ).fetchall():
-        print(f"  position={row[0]!r:5s}  {row[1]:>10,}")
+        print(f"  {row[0]!r:5s}  {row[1]:>10,}")
 
-    # Null rates for every column
     print("\n=== NULL RATES (columns with any nulls) ===")
-    cols = [r[0] for r in duck.execute("DESCRIBE waldec").fetchall()]
-    for col in cols:
-        null_count = duck.execute(
-            f"SELECT count(*) FROM waldec WHERE {col} IS NULL"
-        ).fetchone()[0]
-        if null_count > 0:
-            print(f"  {col:30s}  {null_count:>10,}  ({null_count / total * 100:.1f}%)")
+    for col in parquet_cols:
+        n = duck.execute(f"SELECT count(*) FROM waldec WHERE {col} IS NULL").fetchone()[0]
+        if n:
+            print(f"  {col:30s}  {n:>10,}  ({n / total * 100:.1f}%)")
 
-    # Sample rows with null titre
-    print("\n=== SAMPLE ROWS WITH NULL titre (first 10) ===")
-    for row in duck.execute(
-        "SELECT id, position, date_creat, date_disso, objet FROM waldec WHERE titre IS NULL LIMIT 10"
-    ).fetchall():
-        print(f"  {row}")
+    print("\n=== VARCHAR SPEC VIOLATIONS (actual max > PDF spec) ===")
+    any_violation = False
+    for col, limit in VARCHAR_LIMITS.items():
+        if col not in parquet_cols:
+            continue
+        actual_max = duck.execute(
+            f"SELECT max(length({col})) FROM waldec"
+        ).fetchone()[0] or 0
+        if actual_max > limit:
+            count = duck.execute(
+                f"SELECT count(*) FROM waldec WHERE length({col}) > {limit}"
+            ).fetchone()[0]
+            print(f"  {col:30s}  spec={limit:>4}  actual_max={actual_max:>5}  violating_rows={count:,}")
+            any_violation = True
+    if not any_violation:
+        print("  none — all columns within spec")
 
-    # titre length distribution
-    print("\n=== titre LENGTH DISTRIBUTION ===")
-    for row in duck.execute("""
-        SELECT
-            CASE
-                WHEN titre IS NULL         THEN 'NULL'
-                WHEN length(titre) = 0     THEN 'empty'
-                WHEN length(titre) < 5     THEN '1-4 chars'
-                WHEN length(titre) < 20    THEN '5-19 chars'
-                ELSE '20+ chars'
-            END AS bucket,
-            count(*) AS n
-        FROM waldec
-        GROUP BY bucket ORDER BY n DESC
-    """).fetchall():
-        print(f"  {row[0]:15s}  {row[1]:>10,}")
-
-    # Date anomalies
-    print("\n=== DATE ANOMALIES (date_creat outside 1800–2030) ===")
-    n = duck.execute(
-        "SELECT count(*) FROM waldec WHERE date_creat < '1800-01-01' OR date_creat > '2030-01-01'"
-    ).fetchone()[0]
-    print(f"  {n:,} rows")
+    print("\n=== COLUMNS MISSING FROM PARQUET ===")
+    expected = set(VARCHAR_LIMITS) | {"date_creat", "date_decla", "date_publi", "date_disso", "maj_time", "telephone", "email"}
+    missing = expected - parquet_cols
+    print(f"  {sorted(missing) or 'none'}")
 
     duck.close()
 
@@ -88,7 +88,6 @@ def analyse(path: str) -> None:
 def main() -> None:
     with tempfile.NamedTemporaryFile(suffix=".parquet", delete=False) as pf:
         path = pf.name
-
     try:
         download(path)
         analyse(path)
