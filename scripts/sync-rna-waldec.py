@@ -7,6 +7,8 @@ import tempfile
 from datetime import timezone
 from email.utils import parsedate_to_datetime
 
+import urllib.parse
+
 import duckdb
 import psycopg2
 import requests
@@ -27,6 +29,25 @@ COLUMNS = [
     "adrg_distrib", "adrg_codepostal", "adrg_achemine", "adrg_pays",
     "dir_civilite", "siteweb", "publiweb", "observation",
 ]
+
+
+def connect_pg(db_url: str):
+    p = urllib.parse.urlparse(db_url)
+    return psycopg2.connect(
+        host=p.hostname,
+        port=p.port or 5432,
+        dbname=p.path.lstrip("/"),
+        user=p.username,
+        password=p.password,
+        # keep connection alive through long COPY
+        keepalives=1,
+        keepalives_idle=10,
+        keepalives_interval=5,
+        keepalives_count=5,
+        # disable timeouts — COPY takes minutes
+        options="-c statement_timeout=0 -c idle_in_transaction_session_timeout=0",
+        connect_timeout=30,
+    )
 
 
 def fetch_metadata() -> tuple[str, str | None, int]:
@@ -98,7 +119,7 @@ def main() -> None:
     download_url, last_modified, filesize = fetch_metadata()
     print(f"  last_modified={last_modified}  filesize={filesize:,}")
 
-    pg = psycopg2.connect(db_url)
+    pg = connect_pg(db_url)
     try:
         with pg.cursor() as cur:
             cur.execute(
@@ -157,16 +178,25 @@ def main() -> None:
         print(f"Done. {row_count:,} rows ingested.")
 
     except Exception as e:
-        pg.rollback()
-        with pg.cursor() as cur:
-            cur.execute(
-                "INSERT INTO ingestion_runs "
-                "(resource_id, last_modified, filesize, status, error_message) "
-                "VALUES (%s, %s, %s, 'error', %s)",
-                (WALDEC_RESOURCE_ID, last_modified, filesize, str(e)),
-            )
-        pg.commit()
         print(f"ERROR: {e}", file=sys.stderr)
+        try:
+            pg.rollback()
+        except Exception:
+            pass
+        # open fresh connection in case original was dropped by pooler
+        try:
+            pg2 = connect_pg(db_url)
+            with pg2.cursor() as cur:
+                cur.execute(
+                    "INSERT INTO ingestion_runs "
+                    "(resource_id, last_modified, filesize, status, error_message) "
+                    "VALUES (%s, %s, %s, 'error', %s)",
+                    (WALDEC_RESOURCE_ID, last_modified, filesize, str(e)),
+                )
+            pg2.commit()
+            pg2.close()
+        except Exception:
+            pass
         raise
 
     finally:
