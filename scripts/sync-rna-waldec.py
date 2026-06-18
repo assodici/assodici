@@ -61,7 +61,7 @@ def fetch_metadata() -> tuple[str, str | None, int]:
     resp = requests.get(DATA_GOUV_REDIRECT, allow_redirects=False, timeout=30)
     resp.raise_for_status()
     download_url = resp.headers["Location"]
-    head = requests.head(download_url, timeout=30)
+    head = requests.head(download_url, timeout=60)
     raw_modified = head.headers.get("Last-Modified")
     filesize = int(head.headers.get("Content-Length", 0))
     last_modified = (
