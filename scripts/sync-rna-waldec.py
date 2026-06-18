@@ -25,7 +25,7 @@ COLUMNS = [
     "adrs_libvoie", "adrs_distrib", "adrs_codeinsee", "adrs_codepostal", "adrs_libcommune",
     "adrg_declarant", "adrg_complemid", "adrg_complemgeo", "adrg_libvoie",
     "adrg_distrib", "adrg_codepostal", "adrg_achemine", "adrg_pays",
-    "dir_civilite", "telephone", "siteweb", "email", "publiweb", "observation",
+    "dir_civilite", "siteweb", "publiweb", "observation",
 ]
 
 
@@ -79,7 +79,11 @@ def parquet_to_csv(parquet_path: str, csv_path: str) -> int:
             col_selects.append(col)
 
     duck.execute(f"""
-        COPY (SELECT {', '.join(col_selects)} FROM parquet_scan('{parquet_path}'))
+        COPY (
+            SELECT {', '.join(col_selects)}
+            FROM parquet_scan('{parquet_path}')
+            WHERE titre IS NOT NULL
+        )
         TO '{csv_path}' (FORMAT CSV, HEADER false, NULL '')
     """)
     duck.close()
