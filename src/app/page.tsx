@@ -1,5 +1,7 @@
 import { createPublicClient } from '@/lib/supabase/server'
 
+export const dynamic = 'force-dynamic'
+
 export default async function Home() {
   const supabase = createPublicClient()
   const { data: lastRun } = await supabase
