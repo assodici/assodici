@@ -188,7 +188,7 @@ def main() -> None:
         with pg.cursor() as cur:
             cur.execute(
                 "DROP TABLE IF EXISTS associations_staging; "
-                "CREATE TABLE associations_staging (LIKE associations INCLUDING ALL);"
+                "CREATE TABLE associations_staging (LIKE associations INCLUDING DEFAULTS);"
             )
         pg.commit()
 
@@ -208,10 +208,10 @@ def main() -> None:
 
         print("Swapping staging → production...")
         with pg.cursor() as cur:
-            cur.execute(
-                "TRUNCATE associations; "
-                f"INSERT INTO associations ({COLS_SQL}) SELECT {COLS_SQL} FROM associations_staging;"
-            )
+            cur.execute("TRUNCATE associations")
+        pg.commit()
+        with pg.cursor() as cur:
+            cur.execute("INSERT INTO associations SELECT * FROM associations_staging")
         pg.commit()
 
         print("Cleaning up staging table...")
