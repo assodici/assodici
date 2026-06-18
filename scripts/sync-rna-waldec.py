@@ -61,9 +61,12 @@ def fetch_metadata() -> tuple[str, str | None, int]:
     resp = requests.get(DATA_GOUV_REDIRECT, allow_redirects=False, timeout=30)
     resp.raise_for_status()
     download_url = resp.headers["Location"]
-    head = requests.head(download_url, timeout=60)
-    raw_modified = head.headers.get("Last-Modified")
-    filesize = int(head.headers.get("Content-Length", 0))
+    # HEAD not supported by object.files.data.gouv.fr — use streaming GET,
+    # read only headers, close without consuming body
+    with requests.get(download_url, stream=True, timeout=120) as r:
+        r.raise_for_status()
+        raw_modified = r.headers.get("Last-Modified")
+        filesize = int(r.headers.get("Content-Length", 0))
     last_modified = (
         parsedate_to_datetime(raw_modified).astimezone(timezone.utc).isoformat()
         if raw_modified
