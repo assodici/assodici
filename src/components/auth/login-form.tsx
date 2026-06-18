@@ -19,9 +19,9 @@ export function LoginForm() {
   const [state, formAction, isPending] = useActionState(login, null)
 
   useEffect(() => {
-    if (state && "error" in state) {
-      toast.error(state.error)
-    }
+    if (!state) return
+    if ("error" in state) toast.error(state.error)
+    if ("success" in state) toast.success("Email envoyé ! Vérifiez votre boîte mail.")
   }, [state])
 
   if (state && "success" in state) {
