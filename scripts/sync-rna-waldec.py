@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""RNA Waldec → Supabase Postgres sync via DuckDB + psycopg2 COPY."""
+"""RNA Waldec → Supabase Postgres sync via DuckDB + psycopg2 chunked COPY."""
 
+import io
 import os
 import sys
 import tempfile
+import urllib.parse
 from datetime import timezone
 from email.utils import parsedate_to_datetime
-
-import urllib.parse
 
 import duckdb
 import psycopg2
@@ -16,8 +16,8 @@ import requests
 WALDEC_RESOURCE_ID = "cc7b8f0c-45ea-4444-8b55-55d30bc34ac5"
 DATA_GOUV_REDIRECT = f"https://www.data.gouv.fr/api/1/datasets/r/{WALDEC_RESOURCE_ID}"
 MIN_ROW_COUNT = 1_000_000
+CHUNK_ROWS = 50_000  # rows per COPY transaction — keeps each statement under ~10s
 
-# Ordered to match the COPY statement below
 COLUMNS = [
     "id", "id_ex", "siret", "rup_mi", "gestion",
     "date_creat", "date_decla", "date_publi", "date_disso", "maj_time",
@@ -30,22 +30,24 @@ COLUMNS = [
     "dir_civilite", "siteweb", "publiweb", "observation",
 ]
 
+COPY_SQL = (
+    f"COPY associations ({', '.join(COLUMNS)}) "
+    "FROM STDIN WITH (FORMAT CSV, NULL '')"
+)
+
 
 def connect_pg(db_url: str):
     p = urllib.parse.urlparse(db_url)
     return psycopg2.connect(
         host=p.hostname,
         port=p.port or 5432,
-        dbname=p.path.lstrip("/"),
+        dbname=p.path.lstrip("/") or "postgres",
         user=p.username,
         password=p.password,
-        # keep connection alive through long COPY
         keepalives=1,
         keepalives_idle=10,
         keepalives_interval=5,
         keepalives_count=5,
-        # disable timeouts — COPY takes minutes
-        options="-c statement_timeout=0 -c idle_in_transaction_session_timeout=0",
         connect_timeout=30,
     )
 
@@ -54,7 +56,6 @@ def fetch_metadata() -> tuple[str, str | None, int]:
     resp = requests.get(DATA_GOUV_REDIRECT, allow_redirects=False, timeout=30)
     resp.raise_for_status()
     download_url = resp.headers["Location"]
-
     head = requests.head(download_url, timeout=30)
     raw_modified = head.headers.get("Last-Modified")
     filesize = int(head.headers.get("Content-Length", 0))
@@ -75,7 +76,6 @@ def download_parquet(url: str, path: str) -> None:
 
 def parquet_to_csv(parquet_path: str, csv_path: str) -> int:
     duck = duckdb.connect()
-
     parquet_cols = {
         row[0]
         for row in duck.execute(
@@ -111,6 +111,48 @@ def parquet_to_csv(parquet_path: str, csv_path: str) -> int:
     return row_count
 
 
+def copy_in_chunks(pg, csv_path: str) -> None:
+    buf = io.StringIO()
+    n = chunk_n = 0
+    with open(csv_path) as f:
+        for line in f:
+            buf.write(line)
+            n += 1
+            if n == CHUNK_ROWS:
+                buf.seek(0)
+                with pg.cursor() as cur:
+                    cur.copy_expert(COPY_SQL, buf)
+                pg.commit()
+                chunk_n += 1
+                print(f"  chunk {chunk_n} ({chunk_n * CHUNK_ROWS:,} rows)")
+                buf = io.StringIO()
+                n = 0
+    if n:
+        buf.seek(0)
+        with pg.cursor() as cur:
+            cur.copy_expert(COPY_SQL, buf)
+        pg.commit()
+        chunk_n += 1
+        print(f"  chunk {chunk_n} final ({n:,} rows)")
+
+
+def log_run(db_url: str, status: str, **kwargs) -> None:
+    fields = {"resource_id": WALDEC_RESOURCE_ID, "status": status, **kwargs}
+    cols = ", ".join(fields)
+    placeholders = ", ".join(["%s"] * len(fields))
+    try:
+        pg = connect_pg(db_url)
+        with pg.cursor() as cur:
+            cur.execute(
+                f"INSERT INTO ingestion_runs ({cols}) VALUES ({placeholders})",
+                list(fields.values()),
+            )
+        pg.commit()
+        pg.close()
+    except Exception as log_err:
+        print(f"WARNING: failed to log run: {log_err}", file=sys.stderr)
+
+
 def main() -> None:
     db_url = os.environ["SUPABASE_DB_URL"]
     parquet_path = csv_path = None
@@ -120,28 +162,26 @@ def main() -> None:
     print(f"  last_modified={last_modified}  filesize={filesize:,}")
 
     pg = connect_pg(db_url)
+
+    with pg.cursor() as cur:
+        cur.execute(
+            "SELECT last_modified, filesize FROM ingestion_runs "
+            "WHERE resource_id = %s AND status = 'success' "
+            "ORDER BY imported_at DESC LIMIT 1",
+            (WALDEC_RESOURCE_ID,),
+        )
+        prev = cur.fetchone()
+    pg.commit()
+
+    if prev and str(prev[0]) == last_modified and prev[1] == filesize:
+        print("Dataset unchanged — logging skip.")
+        log_run(db_url, "skipped", last_modified=last_modified, filesize=filesize)
+        pg.close()
+        return
+
+    pg.close()
+
     try:
-        with pg.cursor() as cur:
-            cur.execute(
-                "SELECT last_modified, filesize FROM ingestion_runs "
-                "WHERE resource_id = %s AND status = 'success' "
-                "ORDER BY imported_at DESC LIMIT 1",
-                (WALDEC_RESOURCE_ID,),
-            )
-            prev = cur.fetchone()
-        pg.commit()
-
-        if prev and str(prev[0]) == last_modified and prev[1] == filesize:
-            print("Dataset unchanged — logging skip.")
-            with pg.cursor() as cur:
-                cur.execute(
-                    "INSERT INTO ingestion_runs (resource_id, last_modified, filesize, status) "
-                    "VALUES (%s, %s, %s, 'skipped')",
-                    (WALDEC_RESOURCE_ID, last_modified, filesize),
-                )
-            pg.commit()
-            return
-
         with tempfile.NamedTemporaryFile(suffix=".parquet", delete=False) as pf:
             parquet_path = pf.name
         with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as cf:
@@ -156,51 +196,27 @@ def main() -> None:
         if row_count < MIN_ROW_COUNT:
             raise ValueError(f"Row count {row_count} below minimum {MIN_ROW_COUNT}")
 
-        print("Loading into Postgres (TRUNCATE + COPY)...")
+        print("Truncating associations...")
+        pg = connect_pg(db_url)
         with pg.cursor() as cur:
             cur.execute("TRUNCATE associations")
-            with open(csv_path) as f:
-                cur.copy_expert(
-                    f"COPY associations ({', '.join(COLUMNS)}) "
-                    "FROM STDIN WITH (FORMAT CSV, NULL '')",
-                    f,
-                )
         pg.commit()
 
-        with pg.cursor() as cur:
-            cur.execute(
-                "INSERT INTO ingestion_runs "
-                "(resource_id, last_modified, filesize, row_count, status) "
-                "VALUES (%s, %s, %s, %s, 'success')",
-                (WALDEC_RESOURCE_ID, last_modified, filesize, row_count),
-            )
-        pg.commit()
+        print(f"Loading into Postgres ({CHUNK_ROWS:,} rows/chunk)...")
+        copy_in_chunks(pg, csv_path)
+        pg.close()
+
+        log_run(db_url, "success",
+                last_modified=last_modified, filesize=filesize, row_count=row_count)
         print(f"Done. {row_count:,} rows ingested.")
 
     except Exception as e:
         print(f"ERROR: {e}", file=sys.stderr)
-        try:
-            pg.rollback()
-        except Exception:
-            pass
-        # open fresh connection in case original was dropped by pooler
-        try:
-            pg2 = connect_pg(db_url)
-            with pg2.cursor() as cur:
-                cur.execute(
-                    "INSERT INTO ingestion_runs "
-                    "(resource_id, last_modified, filesize, status, error_message) "
-                    "VALUES (%s, %s, %s, 'error', %s)",
-                    (WALDEC_RESOURCE_ID, last_modified, filesize, str(e)),
-                )
-            pg2.commit()
-            pg2.close()
-        except Exception:
-            pass
+        log_run(db_url, "error",
+                last_modified=last_modified, filesize=filesize, error_message=str(e))
         raise
 
     finally:
-        pg.close()
         for path in filter(None, [parquet_path, csv_path]):
             try:
                 os.unlink(path)
