@@ -1,5 +1,5 @@
 import type {Metadata} from "next"
-import {Geist_Mono, Noto_Sans} from "next/font/google"
+import {Bungee, Geist_Mono, Noto_Sans} from "next/font/google"
 import "./globals.css"
 import {cn} from "@/lib/utils"
 import {AppShell} from "@/components/app-shell";
@@ -13,6 +13,9 @@ const geistMono = Geist_Mono({
     subsets: ["latin"],
 })
 
+// Brand display font (headlines, CTA labels) from the Figma design.
+const bungee = Bungee({variable: "--font-bungee", weight: "400", subsets: ["latin"]})
+
 export const metadata: Metadata = {
     title: "Assodici",
     description: "Mise en relation d'associations et particuliers",
@@ -24,7 +27,7 @@ export default async function RootLayout({
     children: React.ReactNode
 }>) {
     return (
-        <html lang={"fr"} className={notoSans.variable} suppressHydrationWarning>
+        <html lang={"fr"} className={cn(notoSans.variable, bungee.variable)} suppressHydrationWarning>
         <body
             className={cn(
                 geistMono.variable,

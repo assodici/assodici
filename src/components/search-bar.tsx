@@ -85,9 +85,9 @@ export function SearchBar() {
       }}
     >
       <ComboboxInput
-        placeholder="Rechercher une association..."
+        placeholder="Recherchez une association, une ville, un centre d'intérêt..."
         showTrigger={false}
-        className="w-full max-w-2xl"
+        className="h-14 w-full max-w-3xl rounded-full border-transparent bg-white px-2 text-base shadow-sm"
       >
         <InputGroupAddon align="inline-start">
           {loading ? (
