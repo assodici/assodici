@@ -43,18 +43,26 @@ export function SearchBar() {
       return
     }
     setLoading(true)
-    const supabase = createBrowserClient()
-    const { data } = await supabase.rpc("search_associations", {
-      query: trimmed,
-      lim: 8,
-    })
-    const parsed = z.array(SearchResultSchema).safeParse(data)
-    if (!parsed.success) {
-      console.error("search_associations returned an unexpected shape:", parsed.error)
+    try {
+      const supabase = createBrowserClient()
+      const { data, error } = await supabase.rpc("search_associations", {
+        query: trimmed,
+        lim: 8,
+      })
+      if (error) throw error
+      const parsed = z.array(SearchResultSchema).safeParse(data)
+      if (!parsed.success) {
+        console.error("search_associations returned an unexpected shape:", parsed.error)
+      }
+      setResults(parsed.success ? parsed.data : [])
+      setOpen(true)
+    } catch (err) {
+      console.error("search_associations request failed:", err)
+      setResults([])
+      setOpen(false)
+    } finally {
+      setLoading(false)
     }
-    setResults(parsed.success ? parsed.data : [])
-    setOpen(true)
-    setLoading(false)
   }, [])
 
   const handleInputValueChange = useCallback((value: string) => {

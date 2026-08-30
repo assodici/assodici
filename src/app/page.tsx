@@ -14,6 +14,9 @@ type FeaturedAssociation = {
   adrs_libcommune: string | null
 }
 
+const dateFormatter = new Intl.DateTimeFormat("fr-FR", { dateStyle: "long" })
+const numberFormatter = new Intl.NumberFormat("fr-FR")
+
 export default async function Home() {
   const supabase = createPublicClient()
 
@@ -36,12 +39,10 @@ export default async function Home() {
   }
 
   const formattedDate = lastRun?.imported_at
-    ? new Intl.DateTimeFormat("fr-FR", { dateStyle: "long" }).format(new Date(lastRun.imported_at))
+    ? dateFormatter.format(new Date(lastRun.imported_at))
     : null
 
-  const formattedCount = lastRun?.row_count
-    ? new Intl.NumberFormat("fr-FR").format(lastRun.row_count)
-    : null
+  const formattedCount = lastRun?.row_count ? numberFormatter.format(lastRun.row_count) : null
 
   return (
     <div>
