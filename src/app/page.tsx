@@ -1,7 +1,8 @@
 import { createPublicClient } from '@/lib/supabase/server'
+import { SearchBar } from '@/components/search-bar'
 
 export default async function Home() {
-  let lastRun: { imported_at: string; row_count: number } | null = null
+  let lastRun: { imported_at: string | null; row_count: number | null } | null = null
 
   if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
     const supabase = createPublicClient()
@@ -33,6 +34,9 @@ export default async function Home() {
           Données mises à jour le {formattedDate} · {formattedCount} associations
         </p>
       )}
+      <div className="mt-6">
+        <SearchBar />
+      </div>
     </div>
   )
 }

@@ -2,11 +2,12 @@ import { createServerClient as createSSRClient } from "@supabase/ssr"
 import { createClient } from "@supabase/supabase-js"
 import { cookies } from "next/headers"
 import { cache } from "react"
+import type { Database } from "@/lib/supabase/types"
 
 export async function createServerClient() {
   const cookieStore = await cookies()
 
-  return createSSRClient(
+  return createSSRClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {
@@ -36,7 +37,7 @@ export const getUser = cache(async () => {
 
 // For use inside "use cache" functions — no cookies, public read-only access
 export function createPublicClient() {
-  return createClient(
+  return createClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
   )

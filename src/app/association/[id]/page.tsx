@@ -1,33 +1,33 @@
 import { Suspense } from "react"
 import { notFound } from "next/navigation"
+import { z } from "zod"
 import { createPublicClient } from "@/lib/supabase/server"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ExternalLinkButton } from "@/components/buttons/external-link-button"
 
-type Association = {
-  id: string
-  siret: string | null
-  titre: string
-  objet: string | null
-  nature: string | null
-  position: string | null
-  groupement: string | null
-  date_creat: string | null
-  date_publi: string | null
-  date_disso: string | null
-  adrs_numvoie: string | null
-  adrs_typevoie: string | null
-  adrs_libvoie: string | null
-  adrs_complement: string | null
-  adrs_codepostal: string | null
-  adrs_libcommune: string | null
-  telephone: string | null
-  email: string | null
-  siteweb: string | null
-}
+const AssociationSchema = z.object({
+  id: z.string(),
+  siret: z.string().nullable(),
+  titre: z.string(),
+  objet: z.string().nullable(),
+  nature: z.string().nullable(),
+  position: z.string().nullable(),
+  groupement: z.string().nullable(),
+  date_creat: z.string().nullable(),
+  date_publi: z.string().nullable(),
+  date_disso: z.string().nullable(),
+  adrs_numvoie: z.string().nullable(),
+  adrs_typevoie: z.string().nullable(),
+  adrs_libvoie: z.string().nullable(),
+  adrs_complement: z.string().nullable(),
+  adrs_codepostal: z.string().nullable(),
+  adrs_libcommune: z.string().nullable(),
+  telephone: z.string().nullable(),
+  email: z.string().nullable(),
+  siteweb: z.string().nullable(),
+})
 
-const ASSOCIATION_COLUMNS =
-  "id, siret, titre, objet, nature, position, groupement, date_creat, date_publi, date_disso, adrs_numvoie, adrs_typevoie, adrs_libvoie, adrs_complement, adrs_codepostal, adrs_libcommune, telephone, email, siteweb"
+type Association = z.infer<typeof AssociationSchema>
 
 function safeWebsiteUrl(value: string | null): string | null {
   if (!value) return null
@@ -65,31 +65,31 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   )
 }
 
-function AssociationSkeleton() {
-  return (
-    <div className="flex flex-col gap-6 animate-pulse">
-      <div className="h-8 w-2/3 rounded bg-muted" />
-      <div className="h-40 rounded bg-muted" />
-    </div>
-  )
-}
-
 async function AssociationDetails({ id }: { id: string }) {
   const supabase = createPublicClient()
   const { data, error } = await supabase
     .from("associations")
-    .select(ASSOCIATION_COLUMNS)
+    .select(
+      "id, siret, titre, objet, nature, position, groupement, date_creat, date_publi, date_disso, adrs_numvoie, adrs_typevoie, adrs_libvoie, adrs_complement, adrs_codepostal, adrs_libcommune, telephone, email, siteweb"
+    )
     .eq("id", id)
-    .single<Association>()
+    .single()
 
   if (error || !data) notFound()
 
-  const address = formatAddress(data)
-  const createdAt = formatDate(data.date_creat)
-  const publishedAt = formatDate(data.date_publi)
-  const dissolvedAt = formatDate(data.date_disso)
-  const website = safeWebsiteUrl(data.siteweb)
-  const hasContact = Boolean(address || data.telephone || data.email || website)
+  const parsed = AssociationSchema.safeParse(data)
+  if (!parsed.success) {
+    console.error(`associations row ${id} has an unexpected shape:`, parsed.error)
+    notFound()
+  }
+
+  const association = parsed.data
+  const address = formatAddress(association)
+  const createdAt = formatDate(association.date_creat)
+  const publishedAt = formatDate(association.date_publi)
+  const dissolvedAt = formatDate(association.date_disso)
+  const website = safeWebsiteUrl(association.siteweb)
+  const hasContact = Boolean(address || association.telephone || association.email || website)
 
   return (
     <div className="flex flex-col gap-6">
@@ -99,17 +99,19 @@ async function AssociationDetails({ id }: { id: string }) {
             Association dissoute le {dissolvedAt}
           </p>
         )}
-        <h1 className="text-2xl font-bold tracking-tight">{data.titre}</h1>
-        {data.position && <p className="mt-1 text-sm text-muted-foreground">{data.position}</p>}
+        <h1 className="text-2xl font-bold tracking-tight">{association.titre}</h1>
+        {association.position && (
+          <p className="mt-1 text-sm text-muted-foreground">{association.position}</p>
+        )}
       </div>
 
-      {data.objet && (
+      {association.objet && (
         <Card>
           <CardHeader>
             <CardTitle>Objet</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm whitespace-pre-line">{data.objet}</p>
+            <p className="text-sm whitespace-pre-line">{association.objet}</p>
           </CardContent>
         </Card>
       )}
@@ -120,10 +122,12 @@ async function AssociationDetails({ id }: { id: string }) {
             <CardTitle>Informations</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-2 text-sm">
-            <InfoRow label="Numéro RNA" value={data.id} />
-            {data.siret && <InfoRow label="SIRET" value={data.siret} />}
-            {data.nature && <InfoRow label="Nature" value={data.nature} />}
-            {data.groupement && <InfoRow label="Groupement" value={data.groupement} />}
+            <InfoRow label="Numéro RNA" value={association.id} />
+            {association.siret && <InfoRow label="SIRET" value={association.siret} />}
+            {association.nature && <InfoRow label="Nature" value={association.nature} />}
+            {association.groupement && (
+              <InfoRow label="Groupement" value={association.groupement} />
+            )}
             {createdAt && <InfoRow label="Création" value={createdAt} />}
             {publishedAt && <InfoRow label="Publication JO" value={publishedAt} />}
           </CardContent>
@@ -135,8 +139,8 @@ async function AssociationDetails({ id }: { id: string }) {
           </CardHeader>
           <CardContent className="flex flex-col gap-2 text-sm">
             {address && <InfoRow label="Adresse" value={address} />}
-            {data.telephone && <InfoRow label="Téléphone" value={data.telephone} />}
-            {data.email && <InfoRow label="Email" value={data.email} />}
+            {association.telephone && <InfoRow label="Téléphone" value={association.telephone} />}
+            {association.email && <InfoRow label="Email" value={association.email} />}
             {website && (
               <div className="flex items-center justify-between gap-2">
                 <span className="text-muted-foreground">Site web</span>
@@ -167,7 +171,14 @@ export default function AssociationPage({
 }) {
   return (
     <div className="page-container py-8">
-      <Suspense fallback={<AssociationSkeleton />}>
+      <Suspense
+        fallback={
+          <div className="flex animate-pulse flex-col gap-6">
+            <div className="h-8 w-2/3 rounded bg-muted" />
+            <div className="h-40 rounded bg-muted" />
+          </div>
+        }
+      >
         {params.then(({ id }) => (
           <AssociationDetails id={id} />
         ))}
