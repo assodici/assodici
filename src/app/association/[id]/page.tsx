@@ -2,6 +2,9 @@ import { Suspense } from "react"
 import { notFound } from "next/navigation"
 import { z } from "zod"
 import { createPublicClient } from "@/lib/supabase/server"
+import { Card, CardContent } from "@/components/ui/card"
+import { Button, buttonVariants } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 
 const AssociationSchema = z.object({
   id: z.string(),
@@ -60,19 +63,17 @@ function foundedYear(value: string | null): number | null {
 
 function StubActionCard({ title, cta }: { title: string; cta: string }) {
   return (
-    <div className="rounded-2xl bg-brand-cream p-6 text-center">
-      <h2 className="font-heading text-lg text-brand-dark">{title}</h2>
-      <p className="mt-2 text-xs text-muted-foreground">
-        Critères, âge, prix de l&apos;adhésion, jour d&apos;activité... — bientôt disponible.
-      </p>
-      <button
-        type="button"
-        disabled
-        className="mt-4 w-full cursor-not-allowed rounded-2xl bg-brand-blue/40 py-2 text-sm text-white"
-      >
-        {cta}
-      </button>
-    </div>
+    <Card className="bg-brand-cream text-center">
+      <CardContent>
+        <h2 className="font-heading text-lg text-brand-dark">{title}</h2>
+        <p className="mt-2 text-xs text-muted-foreground">
+          Critères, âge, prix de l&apos;adhésion, jour d&apos;activité... — bientôt disponible.
+        </p>
+        <Button disabled className="mt-4 w-full rounded-2xl">
+          {cta}
+        </Button>
+      </CardContent>
+    </Card>
   )
 }
 
@@ -127,12 +128,14 @@ async function AssociationDetails({ id }: { id: string }) {
         <div className="page-container grid gap-6 py-10 lg:grid-cols-[1fr_320px]">
           <div className="flex flex-col gap-6">
             {association.objet && (
-              <div className="rounded-2xl bg-brand-cream p-6">
-                <h2 className="font-heading text-lg text-brand-dark">à propos</h2>
-                <p className="mt-4 text-sm whitespace-pre-line text-brand-dark/80">
-                  {association.objet}
-                </p>
-              </div>
+              <Card className="bg-brand-cream">
+                <CardContent>
+                  <h2 className="font-heading text-lg text-brand-dark">à propos</h2>
+                  <p className="mt-4 text-sm whitespace-pre-line text-brand-dark/80">
+                    {association.objet}
+                  </p>
+                </CardContent>
+              </Card>
             )}
           </div>
 
@@ -140,32 +143,39 @@ async function AssociationDetails({ id }: { id: string }) {
             <StubActionCard title="devenir adhérent" cta="Rejoindre l'asso" />
             <StubActionCard title="devenir bénévole" cta="Proposer mon aide" />
 
-            <div className="rounded-2xl bg-brand-cream p-6">
-              <h2 className="font-heading text-lg text-brand-dark">infos pratiques</h2>
-              <div className="mt-4 flex flex-col gap-2 text-sm text-brand-dark/80">
-                {address && <p>{address}</p>}
-                {association.telephone && <p>{association.telephone}</p>}
-                {association.email && <p>{association.email}</p>}
-                {website && (
-                  <a href={website} target="_blank" rel="noopener noreferrer" className="underline">
-                    {website}
+            <Card className="bg-brand-cream">
+              <CardContent>
+                <h2 className="font-heading text-lg text-brand-dark">infos pratiques</h2>
+                <div className="mt-4 flex flex-col gap-2 text-sm text-brand-dark/80">
+                  {address && <p>{address}</p>}
+                  {association.telephone && <p>{association.telephone}</p>}
+                  {association.email && <p>{association.email}</p>}
+                  {website && (
+                    <a
+                      href={website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline"
+                    >
+                      {website}
+                    </a>
+                  )}
+                  {!address && !association.telephone && !association.email && !website && (
+                    <p className="text-muted-foreground">Aucune information disponible.</p>
+                  )}
+                </div>
+                {mapsUrl && (
+                  <a
+                    href={mapsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={cn(buttonVariants(), "mt-4 w-full rounded-2xl")}
+                  >
+                    Voir sur la carte
                   </a>
                 )}
-                {!address && !association.telephone && !association.email && !website && (
-                  <p className="text-muted-foreground">Aucune information disponible.</p>
-                )}
-              </div>
-              {mapsUrl && (
-                <a
-                  href={mapsUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-4 block rounded-2xl bg-brand-blue py-2 text-center text-sm text-white"
-                >
-                  Voir sur la carte
-                </a>
-              )}
-            </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>

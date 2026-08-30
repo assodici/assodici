@@ -1,6 +1,7 @@
 import Link from "next/link"
 import Image from "next/image"
 import { AuthButton } from "@/components/buttons/auth-button"
+import { ThemeToggleButton } from "@/components/buttons/theme-toggle-button"
 import type { User } from "@supabase/supabase-js"
 
 const NAV = [{ href: "/", label: "Accueil" }]
@@ -41,7 +42,10 @@ export function SiteHeader({ user }: SiteHeaderProps) {
           ))}
         </nav>
 
-        <AuthButton user={user} variant="default" className="rounded-full" />
+        <div className="flex items-center gap-2">
+          <ThemeToggleButton />
+          <AuthButton user={user} variant="default" className="rounded-full" />
+        </div>
       </div>
       <p className="page-container pb-3 text-sm text-brand-yellow italic">
         Découvre les associations près de chez toi et engage-toi dans ta communauté !

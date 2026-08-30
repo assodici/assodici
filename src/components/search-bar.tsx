@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { z } from "zod"
-import { Search, Loader2 } from "lucide-react"
+import { Search } from "lucide-react"
 import {
   Combobox,
   ComboboxContent,
@@ -13,6 +13,7 @@ import {
   ComboboxList,
 } from "@/components/ui/combobox"
 import { InputGroupAddon } from "@/components/ui/input-group"
+import { Spinner } from "@/components/ui/spinner"
 import { createBrowserClient } from "@/lib/supabase/client"
 
 const SearchResultSchema = z.object({
@@ -98,11 +99,7 @@ export function SearchBar() {
         className="h-14 w-full max-w-3xl rounded-full border-transparent bg-white px-2 text-base shadow-sm"
       >
         <InputGroupAddon align="inline-start">
-          {loading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Search className="h-4 w-4" />
-          )}
+          {loading ? <Spinner className="h-4 w-4" /> : <Search className="h-4 w-4" />}
         </InputGroupAddon>
       </ComboboxInput>
       <ComboboxContent>

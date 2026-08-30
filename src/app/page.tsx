@@ -2,10 +2,29 @@ import Image from "next/image"
 import Link from "next/link"
 import { createPublicClient } from "@/lib/supabase/server"
 import { SearchBar } from "@/components/search-bar"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent } from "@/components/ui/card"
+import { buttonVariants } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 
 const CATEGORIES = ["Toutes", "Engagement & Solidarité", "Sports & Activités", "Arts & Culture"]
 
-const CARD_ACCENTS = ["bg-brand-blue", "bg-brand-orange", "bg-brand-yellow"] as const
+// Tailwind's scanner needs each full class token as literal text — building
+// these via template-string interpolation (e.g. `${color}/20`) silently
+// produces no CSS at all, since the scanner can't see runtime-built strings.
+const CARD_ACCENTS = [
+  { wrap: "bg-brand-blue/20", strip: "bg-brand-blue/40", cta: "bg-brand-blue hover:bg-brand-blue/90" },
+  {
+    wrap: "bg-brand-orange/20",
+    strip: "bg-brand-orange/40",
+    cta: "bg-brand-orange hover:bg-brand-orange/90",
+  },
+  {
+    wrap: "bg-brand-yellow/20",
+    strip: "bg-brand-yellow/40",
+    cta: "bg-brand-yellow hover:bg-brand-yellow/90",
+  },
+] as const
 
 type FeaturedAssociation = {
   id: string
@@ -68,18 +87,21 @@ export default async function Home() {
             {/* Decorative for now — the associations schema has no category
                 taxonomy yet, so these don't filter results. */}
             <div className="flex flex-wrap justify-center gap-3">
-              {CATEGORIES.map((label, i) => (
-                <span
-                  key={label}
-                  className={
-                    i === 0
-                      ? "rounded-full bg-brand-blue px-5 py-2 text-sm font-medium text-white"
-                      : "rounded-full bg-white px-5 py-2 text-sm font-medium text-muted-foreground"
-                  }
-                >
-                  {label}
-                </span>
-              ))}
+              {CATEGORIES.map((label, i) =>
+                i === 0 ? (
+                  <Badge key={label} className="px-5 py-2 text-sm">
+                    {label}
+                  </Badge>
+                ) : (
+                  <Badge
+                    key={label}
+                    variant="outline"
+                    className="bg-white px-5 py-2 text-sm text-muted-foreground"
+                  >
+                    {label}
+                  </Badge>
+                )
+              )}
             </div>
           </div>
 
@@ -93,31 +115,35 @@ export default async function Home() {
 
       {featured.length > 0 && (
         <section className="page-container grid gap-6 py-16 sm:grid-cols-3">
-          {featured.map((association, i) => (
-            <div
-              key={association.id}
-              className={`flex flex-col overflow-hidden rounded-2xl ${CARD_ACCENTS[i % CARD_ACCENTS.length]}/20`}
-            >
-              <div className={`h-24 ${CARD_ACCENTS[i % CARD_ACCENTS.length]}/40`} />
-              <div className="flex flex-1 flex-col gap-2 p-4">
-                <p className="font-heading text-sm text-foreground">{association.titre}</p>
-                {association.adrs_libcommune && (
-                  <p className="text-xs text-muted-foreground">{association.adrs_libcommune}</p>
-                )}
-                {association.objet && (
-                  <p className="line-clamp-3 flex-1 text-xs text-muted-foreground">
-                    {association.objet}
-                  </p>
-                )}
-                <Link
-                  href={`/association/${encodeURIComponent(association.id)}`}
-                  className={`mt-2 rounded-2xl ${CARD_ACCENTS[i % CARD_ACCENTS.length]} py-2 text-center font-heading text-sm text-white`}
-                >
-                  en savoir plus
-                </Link>
-              </div>
-            </div>
-          ))}
+          {featured.map((association, i) => {
+            const accent = CARD_ACCENTS[i % CARD_ACCENTS.length]
+            return (
+              <Card key={association.id} className={cn("overflow-hidden py-0", accent.wrap)}>
+                <div className={accent.strip} />
+                <CardContent className="flex flex-1 flex-col gap-2 pb-4">
+                  <p className="font-heading text-sm text-foreground">{association.titre}</p>
+                  {association.adrs_libcommune && (
+                    <p className="text-xs text-muted-foreground">{association.adrs_libcommune}</p>
+                  )}
+                  {association.objet && (
+                    <p className="line-clamp-3 flex-1 text-xs text-muted-foreground">
+                      {association.objet}
+                    </p>
+                  )}
+                  <Link
+                    href={`/association/${encodeURIComponent(association.id)}`}
+                    className={cn(
+                      buttonVariants(),
+                      "mt-2 rounded-2xl font-heading text-white",
+                      accent.cta
+                    )}
+                  >
+                    en savoir plus
+                  </Link>
+                </CardContent>
+              </Card>
+            )
+          })}
         </section>
       )}
     </div>

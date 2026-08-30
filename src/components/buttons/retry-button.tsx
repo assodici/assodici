@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { LuRefreshCw } from "react-icons/lu"
+import { RefreshCwIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 type RetryButtonProps = {
@@ -29,7 +29,7 @@ export function RetryButton({ onClick, label, className, disabled }: RetryButton
       disabled={disabled}
       className={className}
     >
-      <LuRefreshCw
+      <RefreshCwIcon
         className={`h-[1em] w-[1em] transition-transform ${spinning ? "animate-[spin_0.5s_linear_1]" : ""}`}
         onAnimationEnd={() => setSpinning(false)}
       />
