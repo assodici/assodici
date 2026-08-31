@@ -3,6 +3,7 @@ import { z } from "zod"
 import { createPublicClient } from "@/lib/supabase/server"
 import { SearchResultSchema } from "@/lib/schemas/search-result"
 import { SearchResultsList } from "@/components/search-results-list"
+import { SearchBar } from "@/components/search-bar"
 
 const PAGE_SIZE = 12
 
@@ -29,7 +30,7 @@ async function SearchResults({ query }: { query: string }) {
     return <p className="text-muted-foreground">La recherche a échoué. Réessayez.</p>
   }
 
-  return <SearchResultsList initialResults={parsed.data} query={query} />
+  return <SearchResultsList key={query} initialResults={parsed.data} query={query} />
 }
 
 export default function RecherchePage({
@@ -46,6 +47,7 @@ export default function RecherchePage({
           const query = (q ?? "").trim()
           return (
             <>
+              <SearchBar key={query} initialQuery={query} />
               <h1 className="text-2xl font-bold tracking-tight">
                 Résultats pour &laquo;&nbsp;{query}&nbsp;&raquo;
               </h1>

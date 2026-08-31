@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useRef, useCallback, type FormEvent } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { z } from "zod"
@@ -18,9 +18,13 @@ import { Spinner } from "@/components/ui/spinner"
 import { createBrowserClient } from "@/lib/supabase/client"
 import { SearchResultSchema, type SearchResult } from "@/lib/schemas/search-result"
 
-export function SearchBar() {
+type SearchBarProps = {
+  initialQuery?: string
+}
+
+export function SearchBar({ initialQuery = "" }: SearchBarProps) {
   const router = useRouter()
-  const [query, setQuery] = useState("")
+  const [query, setQuery] = useState(initialQuery)
   const [results, setResults] = useState<SearchResult[]>([])
   const [loading, setLoading] = useState(false)
   const [open, setOpen] = useState(false)
@@ -70,8 +74,15 @@ export function SearchBar() {
     }
   }, [query, search])
 
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault()
+    const trimmed = query.trim()
+    if (trimmed.length >= 2) router.push(`/recherche?q=${encodeURIComponent(trimmed)}`)
+  }
+
   return (
-    <Combobox
+    <form role="search" onSubmit={handleSubmit} className="contents">
+      <Combobox
       items={results}
       filter={null}
       autoComplete="none"
@@ -124,6 +135,7 @@ export function SearchBar() {
           </Link>
         )}
       </ComboboxContent>
-    </Combobox>
+      </Combobox>
+    </form>
   )
 }
