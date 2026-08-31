@@ -13,7 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { LuLoader } from "react-icons/lu"
+import { Spinner } from "@/components/ui/spinner"
 
 export function LoginForm() {
   const [state, formAction, isPending] = useActionState(login, null)
@@ -66,7 +66,7 @@ export function LoginForm() {
           </div>
 
           <Button type="submit" disabled={isPending} className="w-full">
-            {isPending && <LuLoader className="animate-spin" />}
+            {isPending && <Spinner />}
             Envoyer le lien
           </Button>
         </form>

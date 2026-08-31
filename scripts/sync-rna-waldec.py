@@ -2,12 +2,14 @@
 """RNA Waldec → Supabase Postgres sync.
 
 Architecture:
-  data.gouv.fr (Parquet) → DuckDB stream → psycopg2 chunked COPY → staging table
-  → two-connection chunked COPY → production → ingestion_runs audit log
+  data.gouv.fr (Parquet) → DuckDB stream → psycopg2 chunked COPY → associations_new
+  → atomic RENAME swap into associations → search table rebuilt the same way
+  → ingestion_runs audit log
 
 Every COPY statement is capped at CHUNK_ROWS rows to stay under pooler statement
-timeouts. The staging→prod swap uses two connections so each COPY chunk commits
-on the write connection without invalidating the server-side read cursor.
+timeouts. Each table is built fresh under a `_new` name (unindexed, for fast
+bulk load) and swapped into place with a single-transaction RENAME, so the
+live table is never truncated and readers never see a partial/empty table.
 """
 
 import csv
@@ -86,9 +88,11 @@ def download_parquet(url: str, path: str) -> None:
                 f.write(chunk)
 
 
-def _copy_iter_chunks(pg, row_iter: Iterator, table: str, label: str) -> int:
+def _copy_iter_chunks(
+    pg, row_iter: Iterator, table: str, label: str, cols: str = COLS_SQL
+) -> int:
     """COPY rows from any iterator into table, one transaction per CHUNK_ROWS rows."""
-    copy_sql = f"COPY {table} ({COLS_SQL}) FROM STDIN WITH (FORMAT CSV, NULL '')"
+    copy_sql = f"COPY {table} ({cols}) FROM STDIN WITH (FORMAT CSV, NULL '')"
     total = chunk_n = 0
     while True:
         batch = list(itertools.islice(row_iter, CHUNK_ROWS))
@@ -108,7 +112,7 @@ def _copy_iter_chunks(pg, row_iter: Iterator, table: str, label: str) -> int:
     return total
 
 
-def stream_parquet_to_staging(parquet_path: str, pg) -> int:
+def stream_parquet_to_table(parquet_path: str, pg, table: str) -> int:
     duck = duckdb.connect()
     parquet_cols = {
         row[0]
@@ -134,37 +138,35 @@ def stream_parquet_to_staging(parquet_path: str, pg) -> int:
                 return
             yield from batch
 
-    total = _copy_iter_chunks(pg, _duckdb_iter(), "associations_staging", "staging")
+    total = _copy_iter_chunks(pg, _duckdb_iter(), table, "load")
     duck.close()
     return total
 
 
-def swap_staging_to_prod(db_url: str) -> int:
-    """Stream staging → production using two separate connections.
+def _swap_into_place(pg, new_table: str, live_table: str) -> None:
+    """Atomically replace live_table's contents with new_table via RENAME.
 
-    read_pg holds a server-side cursor that stays open across multiple fetchmany
-    calls. write_pg commits after each COPY chunk. Using two connections avoids
-    committing on read_pg, which would invalidate the open cursor.
+    new_table must already carry the constraints/indexes it needs to go live.
+    Adds the "public read" policy and anon/authenticated SELECT grant (RLS
+    itself is auto-enabled on CREATE TABLE by the ensure_rls event trigger),
+    then swaps names in one transaction. The old table is dropped afterward.
+    This is a single fast DDL operation — readers never see a truncated or
+    partially-loaded table.
     """
-    read_pg = connect_pg(db_url)
-    write_pg = connect_pg(db_url)
-    try:
-        read_cur = read_pg.cursor("stream_staging")
-        read_cur.execute(f"SELECT {COLS_SQL} FROM associations_staging")
+    with pg.cursor() as cur:
+        cur.execute(f'CREATE POLICY "public read" ON {new_table} FOR SELECT USING (true)')
+        cur.execute(f"GRANT SELECT ON {new_table} TO anon, authenticated")
+    pg.commit()
 
-        def _pg_iter():
-            while True:
-                batch = read_cur.fetchmany(CHUNK_ROWS)
-                if not batch:
-                    return
-                yield from batch
+    with pg.cursor() as cur:
+        cur.execute(f"DROP TABLE IF EXISTS {live_table}_old")
+        cur.execute(f"ALTER TABLE {live_table} RENAME TO {live_table}_old")
+        cur.execute(f"ALTER TABLE {new_table} RENAME TO {live_table}")
+    pg.commit()
 
-        total = _copy_iter_chunks(write_pg, _pg_iter(), "associations", "swap")
-        read_cur.close()
-    finally:
-        read_pg.close()
-        write_pg.close()
-    return total
+    with pg.cursor() as cur:
+        cur.execute(f"DROP TABLE {live_table}_old")
+    pg.commit()
 
 
 def log_run(db_url: str, status: str, last_modified, filesize: int, **kwargs) -> None:
@@ -183,6 +185,94 @@ def log_run(db_url: str, status: str, last_modified, filesize: int, **kwargs) ->
         lg.close()
     except Exception as err:
         print(f"WARNING: could not write ingestion_runs: {err}", file=sys.stderr)
+
+
+_SEARCH_COLS_SQL = "id, titre, objet, adrs_libcommune, adrs_codepostal"
+
+
+def _rebuild_search_table(db_url: str) -> int:
+    """Rebuild associations_search from fresh associations data.
+
+    Builds associations_search_new from scratch (unindexed, for fast bulk
+    load via the same two-connection streaming pattern as the main table),
+    adds its primary key and GIN indexes, then swaps it into place with
+    _swap_into_place. Readers never see a truncated or unindexed search table.
+    """
+    pg = connect_pg(db_url)
+    with pg.cursor() as cur:
+        cur.execute(
+            "DROP TABLE IF EXISTS associations_search_new; "
+            "CREATE TABLE associations_search_new (LIKE associations_search INCLUDING GENERATED)"
+        )
+    pg.commit()
+    pg.close()
+
+    read_pg = connect_pg(db_url)
+    write_pg = connect_pg(db_url)
+    try:
+        read_cur = read_pg.cursor("stream_search_rebuild")
+        read_cur.execute(f"SELECT {_SEARCH_COLS_SQL} FROM associations")
+
+        def _pg_iter():
+            while True:
+                batch = read_cur.fetchmany(CHUNK_ROWS)
+                if not batch:
+                    return
+                yield from batch
+
+        total = _copy_iter_chunks(
+            write_pg, _pg_iter(), "associations_search_new", "search", _SEARCH_COLS_SQL
+        )
+        read_cur.close()
+    finally:
+        read_pg.close()
+        write_pg.close()
+
+    pg = connect_pg(db_url)
+    with pg.cursor() as cur:
+        print("  Adding primary key...")
+        cur.execute("ALTER TABLE associations_search_new ADD PRIMARY KEY (id)")
+        print("  Building search_vector GIN index...")
+        cur.execute(
+            "CREATE INDEX associations_search_new_fts "
+            "ON public.associations_search_new USING gin(search_vector)"
+        )
+        print("  Building trigram GIN index...")
+        cur.execute(
+            "CREATE INDEX associations_search_new_trgm "
+            "ON public.associations_search_new USING gin(titre gin_trgm_ops)"
+        )
+        print("  Building geo lookup indexes...")
+        cur.execute(
+            "CREATE INDEX associations_search_new_codepostal "
+            "ON public.associations_search_new (adrs_codepostal)"
+        )
+        cur.execute(
+            "CREATE INDEX associations_search_new_libcommune_lower "
+            "ON public.associations_search_new (lower(adrs_libcommune))"
+        )
+    pg.commit()
+
+    print("  Swapping search table into place...")
+    _swap_into_place(pg, "associations_search_new", "associations_search")
+    with pg.cursor() as cur:
+        cur.execute(
+            "ALTER TABLE associations_search "
+            "RENAME CONSTRAINT associations_search_new_pkey TO associations_search_pkey"
+        )
+        cur.execute("ALTER INDEX associations_search_new_fts RENAME TO associations_search_fts")
+        cur.execute("ALTER INDEX associations_search_new_trgm RENAME TO associations_search_trgm")
+        cur.execute(
+            "ALTER INDEX associations_search_new_codepostal "
+            "RENAME TO associations_search_codepostal_idx"
+        )
+        cur.execute(
+            "ALTER INDEX associations_search_new_libcommune_lower "
+            "RENAME TO associations_search_libcommune_lower_idx"
+        )
+    pg.commit()
+    pg.close()
+    return total
 
 
 def main() -> None:
@@ -217,50 +307,52 @@ def main() -> None:
         print(f"Downloading {filesize / 1e6:.1f} MB...")
         download_parquet(download_url, parquet_path)
 
-        # Load staging
+        # Build associations_new (unindexed, for fast bulk load)
         pg = connect_pg(db_url)
-        print("Preparing staging table...")
+        print("Preparing associations_new table...")
         with pg.cursor() as cur:
             cur.execute(
-                "DROP TABLE IF EXISTS associations_staging; "
-                "CREATE TABLE associations_staging "
+                "DROP TABLE IF EXISTS associations_new; "
+                "CREATE TABLE associations_new "
                 "(LIKE associations INCLUDING DEFAULTS);"
             )
         pg.commit()
 
-        print(f"Streaming Parquet → staging ({CHUNK_ROWS:,} rows/chunk)...")
-        staged = stream_parquet_to_staging(parquet_path, pg)
+        print(f"Streaming Parquet → associations_new ({CHUNK_ROWS:,} rows/chunk)...")
+        inserted = stream_parquet_to_table(parquet_path, pg, "associations_new")
         pg.close()
-        print(f"  staged: {staged:,}")
+        print(f"  loaded: {inserted:,}")
 
-        if staged < MIN_ROW_COUNT:
-            raise ValueError(f"Staged row count {staged} below minimum {MIN_ROW_COUNT}")
+        if inserted < MIN_ROW_COUNT:
+            raise ValueError(f"Loaded row count {inserted} below minimum {MIN_ROW_COUNT}")
 
         # Validate
         pg = connect_pg(db_url)
         with pg.cursor() as cur:
-            cur.execute("SELECT count(*) FROM associations_staging")
-            db_staged = cur.fetchone()[0]
-        if db_staged != staged:
-            raise ValueError(f"Staging count mismatch: Python={staged}, DB={db_staged}")
+            cur.execute("SELECT count(*) FROM associations_new")
+            db_count = cur.fetchone()[0]
+        if db_count != inserted:
+            raise ValueError(f"Row count mismatch: Python={inserted}, DB={db_count}")
 
-        # TRUNCATE production then swap
-        print("Truncating production table...")
+        print("Adding primary key to associations_new...")
         with pg.cursor() as cur:
-            cur.execute("TRUNCATE associations")
+            cur.execute("ALTER TABLE associations_new ADD PRIMARY KEY (id)")
+        pg.commit()
+
+        print("Swapping associations_new into place...")
+        _swap_into_place(pg, "associations_new", "associations")
+        with pg.cursor() as cur:
+            cur.execute(
+                "ALTER TABLE associations "
+                "RENAME CONSTRAINT associations_new_pkey TO associations_pkey"
+            )
         pg.commit()
         pg.close()
 
-        print(f"Copying staging → production ({CHUNK_ROWS:,} rows/chunk)...")
-        inserted = swap_staging_to_prod(db_url)
-        print(f"  inserted: {inserted:,}")
-
-        # Cleanup
-        pg = connect_pg(db_url)
-        with pg.cursor() as cur:
-            cur.execute("DROP TABLE IF EXISTS associations_staging")
-        pg.commit()
-        pg.close()
+        # Rebuild dedicated search table the same way (build fresh, then swap)
+        print("Rebuilding search table (this takes a few minutes)...")
+        search_rows = _rebuild_search_table(db_url)
+        print(f"  search table: {search_rows:,} rows, indexes rebuilt.")
 
         log_run(db_url, "success", last_modified, filesize, row_count=inserted)
         print(f"Done. {inserted:,} rows in production.")

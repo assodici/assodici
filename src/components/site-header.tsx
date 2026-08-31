@@ -1,59 +1,63 @@
 import Link from "next/link"
 import Image from "next/image"
-import {ThemeToggleButton} from "@/components/buttons/theme-toggle-button"
-import {AuthButton} from "@/components/buttons/auth-button"
-import {ButtonGroup} from "@/components/ui/button-group"
-import type {User} from "@supabase/supabase-js"
+import { AuthButton } from "@/components/buttons/auth-button"
+import { ThemeToggleButton } from "@/components/buttons/theme-toggle-button"
+import {
+  NavigationMenu,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+} from "@/components/ui/navigation-menu"
+import type { User } from "@supabase/supabase-js"
 
 const NAV = [
-  {href: "/", label: "Accueil"},
+  { href: "/", label: "Accueil" },
+  { href: "/search", label: "Recherche" },
+  { href: "/about", label: "Qui sommes-nous ?" },
 ]
 
 type SiteHeaderProps = {
   user: User | null
 }
 
-export function SiteHeader({user}: SiteHeaderProps) {
+export function SiteHeader({ user }: SiteHeaderProps) {
   return (
-    <header
-      className="sticky top-0 z-50 w-full border-b bg-background/70 backdrop-blur supports-backdrop-filter:bg-background/60">
-      <div className="page-container py-3 flex items-center gap-4">
-        <div className="flex flex-1 items-center">
-          <Link href="/" className="flex items-center">
-            <Image
-              src="/globe.svg"
-              alt="Logo"
-              width={96}
-              height={24}
-              className="h-6 w-auto dark:invert"
-              priority
-            />
-          </Link>
-        </div>
+    <header className="w-full bg-brand-red text-white shadow-md">
+      <div className="page-container flex flex-wrap items-center justify-between gap-4 py-4">
+        <Link href="/" className="shrink-0">
+          <Image
+            src="/brand/logo-on-dark.png"
+            alt="Asso d'ici"
+            width={220}
+            height={26}
+            className="h-7 w-auto sm:h-8"
+            priority
+          />
+        </Link>
 
-        <nav className="hidden md:flex items-center gap-4 text-sm text-muted-foreground">
-          {NAV.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="hover:text-foreground transition-colors"
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+        <NavigationMenu className="hidden md:flex">
+          <NavigationMenuList className="gap-1">
+            {NAV.map((item) => (
+              <NavigationMenuItem key={item.href}>
+                <NavigationMenuLink
+                  render={<Link href={item.href} />}
+                  className="text-white hover:bg-white/10 hover:text-white focus:bg-white/10 focus:text-white"
+                >
+                  {item.label}
+                </NavigationMenuLink>
+              </NavigationMenuItem>
+            ))}
+          </NavigationMenuList>
+        </NavigationMenu>
 
-        <div className="flex flex-1 justify-end">
-          <ButtonGroup>
-            <ButtonGroup>
-              <ThemeToggleButton/>
-            </ButtonGroup>
-            <ButtonGroup>
-              <AuthButton user={user}/>
-            </ButtonGroup>
-          </ButtonGroup>
+        <div className="flex items-center gap-2">
+          <ThemeToggleButton />
+          <AuthButton user={user} variant="default" />
         </div>
       </div>
+      <p className="page-container pb-3 text-sm text-brand-yellow italic">
+        Découvre les associations près de chez toi et engage-toi dans ta communauté !
+      </p>
     </header>
   )
 }
