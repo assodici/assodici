@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { z } from "zod"
 import { Search } from "lucide-react"
 import {
@@ -15,17 +16,7 @@ import {
 import { InputGroupAddon } from "@/components/ui/input-group"
 import { Spinner } from "@/components/ui/spinner"
 import { createBrowserClient } from "@/lib/supabase/client"
-
-const SearchResultSchema = z.object({
-  id: z.string(),
-  titre: z.string(),
-  objet: z.string().nullable(),
-  adrs_libcommune: z.string().nullable(),
-  adrs_codepostal: z.string().nullable(),
-  rank: z.number(),
-})
-
-type SearchResult = z.infer<typeof SearchResultSchema>
+import { SearchResultSchema, type SearchResult } from "@/lib/schemas/search-result"
 
 export function SearchBar() {
   const router = useRouter()
@@ -124,6 +115,14 @@ export function SearchBar() {
             </ComboboxItem>
           )}
         </ComboboxList>
+        {results.length > 0 && (
+          <Link
+            href={`/recherche?q=${encodeURIComponent(query.trim())}`}
+            className="block border-t px-4 py-3 text-center text-sm font-medium text-primary hover:bg-accent"
+          >
+            Voir tous les résultats pour &laquo;&nbsp;{query.trim()}&nbsp;&raquo;
+          </Link>
+        )}
       </ComboboxContent>
     </Combobox>
   )

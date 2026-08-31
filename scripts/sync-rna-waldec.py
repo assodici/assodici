@@ -242,6 +242,15 @@ def _rebuild_search_table(db_url: str) -> int:
             "CREATE INDEX associations_search_new_trgm "
             "ON public.associations_search_new USING gin(titre gin_trgm_ops)"
         )
+        print("  Building geo lookup indexes...")
+        cur.execute(
+            "CREATE INDEX associations_search_new_codepostal "
+            "ON public.associations_search_new (adrs_codepostal)"
+        )
+        cur.execute(
+            "CREATE INDEX associations_search_new_libcommune_lower "
+            "ON public.associations_search_new (lower(adrs_libcommune))"
+        )
     pg.commit()
 
     print("  Swapping search table into place...")
@@ -253,6 +262,14 @@ def _rebuild_search_table(db_url: str) -> int:
         )
         cur.execute("ALTER INDEX associations_search_new_fts RENAME TO associations_search_fts")
         cur.execute("ALTER INDEX associations_search_new_trgm RENAME TO associations_search_trgm")
+        cur.execute(
+            "ALTER INDEX associations_search_new_codepostal "
+            "RENAME TO associations_search_codepostal_idx"
+        )
+        cur.execute(
+            "ALTER INDEX associations_search_new_libcommune_lower "
+            "RENAME TO associations_search_libcommune_lower_idx"
+        )
     pg.commit()
     pg.close()
     return total

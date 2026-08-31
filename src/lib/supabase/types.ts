@@ -215,7 +215,7 @@ export type Database = {
     }
     Functions: {
       search_associations: {
-        Args: { lim?: number; query: string }
+        Args: { lim?: number; offset_val?: number; query: string }
         Returns: {
           adrs_codepostal: string
           adrs_libcommune: string
