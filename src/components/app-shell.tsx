@@ -4,7 +4,8 @@ import { Toaster } from "@/components/ui/sonner"
 import { AppToast } from "@/components/app-toast"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
-import { getUser } from "@/lib/supabase/server"
+import { getUser, isSupabaseConfigured } from "@/lib/supabase/server"
+import { ServiceStatusBanner } from "@/components/service-status-banner"
 
 type ThemeProviderProps = React.ComponentProps<typeof NextThemesProvider>
 
@@ -13,9 +14,11 @@ function ThemeProvider({ children, ...props }: ThemeProviderProps) {
 }
 
 async function AuthShell({ children }: { children: ReactNode }) {
-  const user = await getUser()
+  const configured = isSupabaseConfigured()
+  const user = configured ? await getUser() : null
   return (
     <>
+      {!configured && <ServiceStatusBanner />}
       <SiteHeader user={user} />
       <main id="main-content" className="flex-1">{children}</main>
       <SiteFooter />
