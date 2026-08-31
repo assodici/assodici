@@ -2,6 +2,12 @@ import Link from "next/link"
 import Image from "next/image"
 import { AuthButton } from "@/components/buttons/auth-button"
 import { ThemeToggleButton } from "@/components/buttons/theme-toggle-button"
+import {
+  NavigationMenu,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+} from "@/components/ui/navigation-menu"
 import type { User } from "@supabase/supabase-js"
 
 const NAV = [{ href: "/", label: "Accueil" }]
@@ -29,22 +35,31 @@ export function SiteHeader({ user }: SiteHeaderProps) {
           />
         </Link>
 
-        <nav className="hidden items-center gap-6 text-sm font-medium md:flex">
-          {NAV.map((item) => (
-            <Link key={item.href} href={item.href} className="transition-opacity hover:opacity-80">
-              {item.label}
-            </Link>
-          ))}
-          {COMING_SOON.map((label) => (
-            <span key={label} className="text-white/50">
-              {label}
-            </span>
-          ))}
-        </nav>
+        <NavigationMenu className="hidden md:flex">
+          <NavigationMenuList className="gap-1">
+            {NAV.map((item) => (
+              <NavigationMenuItem key={item.href}>
+                <NavigationMenuLink
+                  render={<Link href={item.href} />}
+                  className="text-white hover:bg-white/10 hover:text-white focus:bg-white/10 focus:text-white"
+                >
+                  {item.label}
+                </NavigationMenuLink>
+              </NavigationMenuItem>
+            ))}
+            {COMING_SOON.map((label) => (
+              <NavigationMenuItem key={label}>
+                <span className="flex h-9 w-max cursor-default items-center rounded-lg px-2.5 py-1.5 text-sm font-medium text-white/50">
+                  {label}
+                </span>
+              </NavigationMenuItem>
+            ))}
+          </NavigationMenuList>
+        </NavigationMenu>
 
         <div className="flex items-center gap-2">
           <ThemeToggleButton />
-          <AuthButton user={user} variant="default" className="rounded-full" />
+          <AuthButton user={user} variant="default" />
         </div>
       </div>
       <p className="page-container pb-3 text-sm text-brand-yellow italic">
