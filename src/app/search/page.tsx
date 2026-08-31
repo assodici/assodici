@@ -33,7 +33,7 @@ async function SearchResults({ query }: { query: string }) {
   return <SearchResultsList key={query} initialResults={parsed.data} query={query} />
 }
 
-export default function RecherchePage({
+export default function SearchPage({
   searchParams,
 }: {
   searchParams: Promise<{ q?: string }>

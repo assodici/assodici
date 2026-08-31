@@ -16,7 +16,7 @@ export function SearchBar({ initialQuery = "" }: SearchBarProps) {
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
     const trimmed = query.trim()
-    if (trimmed.length >= 2) router.push(`/recherche?q=${encodeURIComponent(trimmed)}`)
+    if (trimmed.length >= 2) router.push(`/search?q=${encodeURIComponent(trimmed)}`)
   }
 
   return (

@@ -10,11 +10,11 @@ import {
 } from "@/components/ui/navigation-menu"
 import type { User } from "@supabase/supabase-js"
 
-const NAV = [{ href: "/", label: "Accueil" }]
-
-// Pages shown in the design but not built yet — rendered as inert text
-// instead of dead links.
-const COMING_SOON = ["Mes Assos", "Actualités", "Qui sommes-nous ?"]
+const NAV = [
+  { href: "/", label: "Accueil" },
+  { href: "/search", label: "Recherche" },
+  { href: "/about", label: "Qui sommes-nous ?" },
+]
 
 type SiteHeaderProps = {
   user: User | null
@@ -45,13 +45,6 @@ export function SiteHeader({ user }: SiteHeaderProps) {
                 >
                   {item.label}
                 </NavigationMenuLink>
-              </NavigationMenuItem>
-            ))}
-            {COMING_SOON.map((label) => (
-              <NavigationMenuItem key={label}>
-                <span className="flex h-9 w-max cursor-default items-center rounded-lg px-2.5 py-1.5 text-sm font-medium text-white/50">
-                  {label}
-                </span>
               </NavigationMenuItem>
             ))}
           </NavigationMenuList>
