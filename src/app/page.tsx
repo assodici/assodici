@@ -37,12 +37,11 @@ const dateFormatter = new Intl.DateTimeFormat("fr-FR", { dateStyle: "long" })
 const numberFormatter = new Intl.NumberFormat("fr-FR")
 
 export default async function Home() {
-  const supabase = createPublicClient()
-
   let lastRun: { imported_at: string | null; row_count: number | null } | null = null
   let featured: FeaturedAssociation[] = []
 
   if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    const supabase = createPublicClient()
     const [ingestionResult, featuredResult] = await Promise.all([
       supabase
         .from("ingestion_runs")
