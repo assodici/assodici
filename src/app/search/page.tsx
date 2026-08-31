@@ -1,6 +1,6 @@
 import { Suspense } from "react"
 import { z } from "zod"
-import { createPublicClient } from "@/lib/supabase/server"
+import { createPublicClient, isSupabaseConfigured } from "@/lib/supabase/server"
 import { SearchResultSchema } from "@/lib/schemas/search-result"
 import { SearchResultsList } from "@/components/search-results-list"
 import { SearchBar } from "@/components/search-bar"
@@ -10,6 +10,10 @@ const PAGE_SIZE = 12
 async function SearchResults({ query }: { query: string }) {
   if (query.trim().length < 2) {
     return <p className="text-muted-foreground">Tapez au moins 2 caractères pour rechercher.</p>
+  }
+
+  if (!isSupabaseConfigured()) {
+    return <p className="text-muted-foreground">Service momentanément indisponible. Réessayez plus tard.</p>
   }
 
   const supabase = createPublicClient()

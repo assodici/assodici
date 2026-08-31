@@ -42,3 +42,12 @@ export function createPublicClient() {
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
   )
 }
+
+// Checked before every createPublicClient() call site — a missing env var
+// (misconfigured deploy environment, integration not wired up yet, etc.)
+// should degrade the page gracefully instead of crashing the request/build.
+export function isSupabaseConfigured(): boolean {
+  return Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+  )
+}

@@ -1,7 +1,7 @@
 import { Suspense } from "react"
 import { notFound } from "next/navigation"
 import { z } from "zod"
-import { createPublicClient } from "@/lib/supabase/server"
+import { createPublicClient, isSupabaseConfigured } from "@/lib/supabase/server"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -78,6 +78,14 @@ function StubActionCard({ title, cta }: { title: string; cta: string }) {
 }
 
 async function AssociationDetails({ id }: { id: string }) {
+  if (!isSupabaseConfigured()) {
+    return (
+      <div className="page-container py-16 text-center text-muted-foreground">
+        Service momentanément indisponible. Réessayez plus tard.
+      </div>
+    )
+  }
+
   const supabase = createPublicClient()
   const { data, error } = await supabase
     .from("associations")

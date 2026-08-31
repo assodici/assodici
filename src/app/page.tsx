@@ -1,6 +1,6 @@
 import Image from "next/image"
 import Link from "next/link"
-import { createPublicClient } from "@/lib/supabase/server"
+import { createPublicClient, isSupabaseConfigured } from "@/lib/supabase/server"
 import { SearchBar } from "@/components/search-bar"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
@@ -40,7 +40,7 @@ export default async function Home() {
   let lastRun: { imported_at: string | null; row_count: number | null } | null = null
   let featured: FeaturedAssociation[] = []
 
-  if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
+  if (isSupabaseConfigured()) {
     const supabase = createPublicClient()
     const [ingestionResult, featuredResult] = await Promise.all([
       supabase
