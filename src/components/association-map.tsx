@@ -1,24 +1,22 @@
-"use client"
-
-import { Map, MapMarker, MarkerContent } from "@/components/ui/map"
 import { cn } from "@/lib/utils"
 
 type AssociationMapProps = {
-  latitude: number
-  longitude: number
+  address: string
+  title: string
   className?: string
 }
 
-export function AssociationMap({ latitude, longitude, className }: AssociationMapProps) {
+export function AssociationMap({ address, title, className }: AssociationMapProps) {
   return (
-    <div className={cn("h-56 w-full overflow-hidden rounded-2xl", className)}>
-      <Map center={[longitude, latitude]} zoom={15}>
-        <MapMarker longitude={longitude} latitude={latitude}>
-          <MarkerContent>
-            <div className="size-4 rounded-full border-2 border-white bg-brand-blue shadow-lg" />
-          </MarkerContent>
-        </MapMarker>
-      </Map>
-    </div>
+    <iframe
+      title={`Localisation de ${title} sur la carte`}
+      src={`https://www.google.com/maps?q=${encodeURIComponent(address)}&output=embed`}
+      loading="lazy"
+      // Google's embed needs both flags to render tiles and read its own
+      // storage; the trusted origin (Google, not user content) is why
+      // that combo is acceptable here.
+      sandbox="allow-scripts allow-same-origin allow-popups"
+      className={cn("h-56 w-full rounded-2xl border-0", className)}
+    />
   )
 }
