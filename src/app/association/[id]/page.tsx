@@ -2,8 +2,10 @@ import { Suspense } from "react"
 import { notFound } from "next/navigation"
 import { z } from "zod"
 import { createPublicClient, isSupabaseConfigured } from "@/lib/supabase/server"
+import { geocodeAddress } from "@/lib/geocode"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button, buttonVariants } from "@/components/ui/button"
+import { AssociationMap } from "@/components/association-map"
 import { cn } from "@/lib/utils"
 
 const AssociationSchema = z.object({
@@ -111,6 +113,7 @@ async function AssociationDetails({ id }: { id: string }) {
   const mapsUrl = address
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
     : null
+  const coordinates = address ? await geocodeAddress(address) : null
 
   return (
     <div className="flex flex-col">
@@ -172,6 +175,13 @@ async function AssociationDetails({ id }: { id: string }) {
                     <p className="text-muted-foreground">Aucune information disponible.</p>
                   )}
                 </div>
+                {coordinates && (
+                  <AssociationMap
+                    latitude={coordinates.latitude}
+                    longitude={coordinates.longitude}
+                    className="mt-4"
+                  />
+                )}
                 {mapsUrl && (
                   <a
                     href={mapsUrl}
