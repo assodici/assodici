@@ -7,7 +7,7 @@ Mise en relation d'associations et particuliers. Search and browse French associ
 - Next.js 16 (App Router, Cache Components), React 19, TypeScript
 - Bun as package manager and script runner
 - Tailwind CSS v4, shadcn/ui (`base-nova`, Base UI primitives), lucide-react icons
-- Supabase (Postgres + Auth via magic link), Zod for validation
+- Supabase (Postgres full-text search, Auth via magic link, RLS), Zod for validation
 - Python ingestion script synced weekly by GitHub Actions
 - Deployed on Vercel (Analytics + Speed Insights)
 
@@ -35,11 +35,13 @@ bun run build    # production build
 bun start        # serve production build
 bun lint         # ESLint
 bun run doctor   # React Doctor scan
+bun run check    # helper self-checks
+bun run db:types # regenerate Supabase types from the live database
 ```
 
 ## Data ingestion
 
-`scripts/sync-rna-waldec.py` downloads the RNA Waldec Parquet from data.gouv.fr, bulk-loads it into Postgres and swaps the new tables into place atomically. It runs every Monday at 04:00 UTC via `.github/workflows/sync-rna.yml` (secret: `SUPABASE_DB_URL`) and can be triggered manually.
+`scripts/sync-rna-waldec.py` downloads the RNA Waldec Parquet from data.gouv.fr, bulk-loads it into Postgres with a generated full-text search column and its indexes, and swaps the new table into place atomically. Search runs in Postgres (`search_associations`), with no separate index to maintain. It runs every Monday at 04:00 UTC via `.github/workflows/sync-rna.yml` (secret: `SUPABASE_DB_URL`) and can be triggered manually.
 
 ```bash
 pip install -r scripts/requirements.txt
@@ -51,9 +53,10 @@ SUPABASE_DB_URL=postgres://... python scripts/sync-rna-waldec.py
 ## Project layout
 
 ```
-src/app/            routes (home, search, association/[id], login, about, auth/confirm)
+src/app/            routes (home, search, association/[id] + edit, about, legal, login, auth/confirm)
 src/components/     app components; ui/ holds shadcn primitives
-src/lib/supabase/   browser/server clients and generated database types
+src/lib/supabase/   server clients and generated database types
+src/lib/            data access (associations.ts), formatting, schemas, themes
 src/proxy.ts        refreshes the Supabase session on each request
 scripts/            Python ingestion and analysis
 supabase/           Auth email templates

@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "doctor": "npx react-doctor@latest",
-    "db:types": "supabase gen types typescript --project-id qeuliugmoegksrbntnti --schema public > src/lib/supabase/types.ts"
+    "db:types": "supabase gen types typescript --project-id qeuliugmoegksrbntnti --schema public > src/lib/supabase/types.ts",
+    "check": "bun run src/lib/helpers.check.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",

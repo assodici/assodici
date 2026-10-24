@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0}
+body{width:1440px;height:900px;overflow:hidden;background:#d9e8f0;font-family:'Schibsted Grotesk',sans-serif;color:#16222c;position:relative}
+.line{position:absolute;left:0;right:0;height:6px}
+.arc{position:absolute;border:6px solid #d23c2a;border-radius:50%;width:520px;height:520px;right:-140px;top:300px}
+header{position:relative;display:flex;justify-content:space-between;align-items:center;padding:22px 64px;background:#0e5a8a;color:#fff}
+.logo{font-weight:800;font-size:22px}
+nav{display:flex;gap:28px;font-size:15px}
+.desk{position:relative;margin:54px 64px 0;background:#fff;border-radius:6px;padding:34px 36px;box-shadow:0 10px 0 #16222c14;max-width:980px}
+.kicker{font-size:13px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#d23c2a}
+h1{margin-top:10px;font-size:52px;line-height:1.04;font-weight:800;letter-spacing:-.03em}
+.search{margin-top:24px;display:grid;grid-template-columns:1fr 240px 160px;border:2px solid #16222c;border-radius:6px;height:64px}
+.search div{display:flex;align-items:center;padding:0 20px;font-size:18px;color:#5d6b76;border-right:2px solid #16222c}
+.search .go{background:#f0b429;color:#16222c;font-weight:800;border:0;justify-content:center}
+.stands{position:absolute;left:64px;right:64px;top:560px;display:grid;grid-template-columns:repeat(4,1fr);gap:22px}
+.stand{background:#fff;border-radius:6px;padding:18px 20px;height:220px;border-top:8px solid}
+.no{display:inline-block;background:#16222c;color:#fff;font-weight:800;font-size:15px;padding:4px 10px;border-radius:4px}
+.n{margin-top:12px;font-size:20px;font-weight:800;line-height:1.12}
+.p{margin-top:8px;font-size:15px;color:#3d4b56}
+.t{margin-top:10px;font-size:13px;font-weight:600}
+</style></head><body>
+<div class="line" style="top:470px;background:#2f8f5b"></div>
+<div class="line" style="top:520px;background:#f0b429"></div>
+<div class="arc"></div>
+<header><div class="logo">Asso d'ici</div><nav><span>Rechercher</span><span>À propos</span><span>Se connecter</span></nav></header>
+<div class="desk">
+<p class="kicker">Accueil du forum</p>
+<h1>Trouvez l'association qu'il vous faut, près de chez vous.</h1>
+<div class="search"><div>Nom, activité…</div><div>Ville ou code postal</div><div class="go">Chercher</div></div>
+</div>
+<div class="stands">
+<div class="stand" style="border-color:#2f8f5b"><span class="no">Stand 69007-01</span><p class="n">Le Stadium Olympique des Gones</p><p class="p">Lyon 7e</p><p class="t" style="color:#2f8f5b">Sports · football</p></div>
+<div class="stand" style="border-color:#d23c2a"><span class="no">Stand 69007-02</span><p class="n">Les Touches s'habillent</p><p class="p">Lyon</p><p class="t" style="color:#d23c2a">Culture · musique</p></div>
+<div class="stand" style="border-color:#f0b429"><span class="no">Stand 69007-03</span><p class="n">Secours populaire français, fédération du Rhône</p><p class="p">Lyon</p><p class="t" style="color:#9a6a00">Solidarité</p></div>
+<div class="stand" style="border-color:#0e5a8a"><span class="no">Stand 69007-04</span><p class="n">Crèche familiale associative Les Septimousses</p><p class="p">Lyon</p><p class="t" style="color:#0e5a8a">Interventions sociales</p></div>
+</div>
+</body></html>

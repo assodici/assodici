@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;600;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0}
+body{width:1440px;height:900px;overflow:hidden;background:#1f3fbf;font-family:'Schibsted Grotesk',sans-serif;color:#141821}
+header{display:flex;align-items:center;justify-content:space-between;padding:22px 64px;color:#fff}
+.logo{font-weight:800;font-size:22px;letter-spacing:-.02em}
+nav{display:flex;gap:28px;font-size:15px;opacity:.9}
+.btn-ghost{border:1.5px solid #ffffffaa;border-radius:999px;padding:8px 18px;font-weight:600}
+.hero{padding:56px 64px 0;color:#fff}
+h1{font-size:64px;line-height:1.02;font-weight:800;letter-spacing:-.03em;max-width:980px}
+.sub{margin-top:14px;font-size:20px;opacity:.85;max-width:760px}
+.search{margin-top:34px;display:grid;grid-template-columns:1fr 280px 180px;background:#f4f1ea;border-radius:18px;overflow:hidden;height:76px;box-shadow:0 0 0 6px #ffffff22}
+.search div{display:flex;align-items:center;padding:0 26px;font-size:20px;color:#5b6070;border-right:1px solid #d9d4c7}
+.search .go{background:#141821;color:#fff;justify-content:center;font-weight:800;border:0}
+.chips{margin-top:18px;display:flex;gap:10px;font-size:14px}
+.chips span{background:#ffffff1f;color:#fff;border-radius:999px;padding:7px 14px}
+.cards{position:absolute;left:64px;right:64px;top:600px;display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.card{background:#f4f1ea;border-radius:16px;height:250px;padding:0 0 18px;overflow:hidden;position:relative}
+.band{height:14px}
+.num{font-family:'JetBrains Mono',monospace;font-size:13px;color:#5b6070;padding:14px 20px 0;display:flex;justify-content:space-between}
+.name{font-size:21px;font-weight:800;line-height:1.1;padding:10px 20px 0;letter-spacing:-.01em}
+.place{padding:8px 20px 0;font-size:15px;color:#3a3f4d}
+.theme{position:absolute;left:20px;bottom:18px;font-size:13px;font-weight:600}
+.stamp{position:absolute;right:16px;bottom:12px;width:86px;height:86px;border:3px solid #1f3fbf;border-radius:50%;color:#1f3fbf;font-size:11px;font-weight:800;text-transform:uppercase;display:flex;align-items:center;justify-content:center;text-align:center;transform:rotate(-12deg);opacity:.85;line-height:1.1}
+.dissolved{opacity:.72}
+.dissolved .name{text-decoration:line-through;text-decoration-thickness:2px}
+.dissolved:before{content:"";position:absolute;left:0;right:0;top:46px;border-top:3px dotted #141821}
+.count{position:absolute;left:64px;top:560px;color:#ffffffcc;font-size:14px}
+</style></head><body>
+<header><div class="logo">Asso d'ici</div><nav><span>Rechercher</span><span>À propos</span></nav><span class="btn-ghost">Se connecter</span></header>
+<section class="hero">
+<h1>Toutes les associations de France, près de chez vous.</h1>
+<p class="sub">2 298 757 associations du Répertoire national, complétées par les associations elles-mêmes.</p>
+<div class="search"><div>Nom, activité, centre d'intérêt…</div><div>Ville ou code postal</div><div class="go">Rechercher</div></div>
+<div class="chips"><span>Sports</span><span>Culture</span><span>Solidarité</span><span>Éducation</span><span>Environnement</span></div>
+</section>
+<p class="count">Mis à jour le 24 octobre 2026</p>
+<div class="cards">
+<div class="card"><div class="band" style="background:#1a7f4b"></div><div class="num"><span>W691053987</span><span>2004</span></div><div class="name">Le Stadium Olympique des Gones</div><div class="place">Lyon 7e · 69007</div><div class="theme" style="color:#1a7f4b">Sports · football</div><div class="stamp">Infos de l'asso</div></div>
+<div class="card"><div class="band" style="background:#e0452b"></div><div class="num"><span>W691070535</span><span>2008</span></div><div class="name">Les Touches s'habillent</div><div class="place">Lyon · 69007</div><div class="theme" style="color:#e0452b">Culture · musique</div></div>
+<div class="card"><div class="band" style="background:#f2c230"></div><div class="num"><span>W691052053</span><span>1962</span></div><div class="name">Secours populaire français, fédération du Rhône</div><div class="place">Lyon · 69007</div><div class="theme" style="color:#9a7400">Solidarité</div></div>
+<div class="card dissolved"><div class="band" style="background:#7a7f8c"></div><div class="num"><span>W941010560</span><span>dissoute</span></div><div class="name">Rakuntata Prod</div><div class="place">Lyon · 69007</div><div class="theme">Culture · musique</div></div>
+</div>
+</body></html>

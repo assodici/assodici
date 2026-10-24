@@ -291,6 +291,7 @@ export type Database = {
           postal_code: string
           rank: number
           subtheme_label: string
+          theme_code: string
           theme_label: string
           total: number
         }[]

@@ -8,6 +8,10 @@ const PARAM_TOASTS: Record<string, { type: "success" | "error"; message: string 
   loggedin: { type: "success", message: "Connexion réussie." },
   loggedout: { type: "success", message: "Déconnexion réussie." },
   auth_failed: { type: "error", message: "Lien invalide ou expiré. Demandez-en un nouveau." },
+  claimed: { type: "success", message: "Association revendiquée. Complétez ses informations." },
+  already_claimed: { type: "error", message: "Cette association est déjà gérée par quelqu'un d'autre." },
+  claim_failed: { type: "error", message: "Revendication impossible : 5 associations maximum par compte." },
+  saved: { type: "success", message: "Informations enregistrées." },
 }
 
 const HASH_ERROR_MESSAGES: Record<string, string> = {

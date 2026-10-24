@@ -1,150 +1,108 @@
-import Image from "next/image"
 import Link from "next/link"
-import { createPublicClient, isSupabaseConfigured } from "@/lib/supabase/server"
-import { SearchBar } from "@/components/search-bar"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent } from "@/components/ui/card"
+import { ArrowRight } from "lucide-react"
+import { SearchForm } from "@/components/search-form"
+import { AssociationCard } from "@/components/association-card"
 import { buttonVariants } from "@/components/ui/button"
+import { getLastIngestion } from "@/lib/associations"
+import { formatDate, numberFormatter } from "@/lib/format"
+import { searchHref } from "@/lib/schemas/search-params"
+import { isSupabaseConfigured } from "@/lib/supabase/server"
+import type { SearchResult } from "@/lib/schemas/search-result"
+import { POPULAR_THEMES, themeBandClass } from "@/lib/themes"
 import { cn } from "@/lib/utils"
 
-const CATEGORIES = ["Toutes", "Engagement & Solidarité", "Sports & Activités", "Arts & Culture"]
+// Demonstration cards: placeholder content (marked "Exemple"), one per mark of the card language.
+const specimen = (overrides: Partial<SearchResult>): SearchResult => ({
+  id: "W000000000",
+  name: "Votre association",
+  description: "Ce qu'elle fait, en deux lignes.",
+  city: "Votre ville",
+  postal_code: "00000",
+  theme_code: "011000",
+  theme_label: "Sports",
+  subtheme_label: null,
+  is_active: true,
+  founded_on: null,
+  is_claimed: false,
+  rank: 0,
+  total: 0,
+  ...overrides,
+})
 
-// Tailwind's scanner needs each full class token as literal text — building
-// these via template-string interpolation (e.g. `${color}/20`) silently
-// produces no CSS at all, since the scanner can't see runtime-built strings.
-const CARD_ACCENTS = [
-  { wrap: "bg-brand-blue/20", strip: "bg-brand-blue/40", cta: "bg-brand-blue hover:bg-brand-blue/90" },
+const SPECIMENS = [
   {
-    wrap: "bg-brand-orange/20",
-    strip: "bg-brand-orange/40",
-    cta: "bg-brand-orange hover:bg-brand-orange/90",
+    card: specimen({ theme_code: "006000", theme_label: "Culture" }),
+    legend: "La bande donne le thème officiel, le numéro est l'identifiant RNA de l'association.",
   },
   {
-    wrap: "bg-brand-yellow/20",
-    strip: "bg-brand-yellow/40",
-    cta: "bg-brand-yellow hover:bg-brand-yellow/90",
+    card: specimen({ is_claimed: true }),
+    legend: "Le tampon : l'association a revendiqué sa page et complète elle-même ses informations.",
   },
-] as const
-
-type FeaturedAssociation = {
-  id: string
-  titre: string
-  objet: string | null
-  adrs_libcommune: string | null
-}
-
-const dateFormatter = new Intl.DateTimeFormat("fr-FR", { dateStyle: "long" })
-const numberFormatter = new Intl.NumberFormat("fr-FR")
+  {
+    card: specimen({ theme_code: "020000", theme_label: "Solidarité", is_active: false }),
+    legend: "Une carte barrée : l'association est dissoute. Elle reste consultable.",
+  },
+]
 
 export default async function Home() {
-  let lastRun: { imported_at: string | null; row_count: number | null } | null = null
-  let featured: FeaturedAssociation[] = []
-
-  if (isSupabaseConfigured()) {
-    const supabase = createPublicClient()
-    const [ingestionResult, featuredResult] = await Promise.all([
-      supabase
-        .from("ingestion_runs")
-        .select("imported_at, row_count")
-        .eq("status", "success")
-        .order("imported_at", { ascending: false })
-        .limit(1)
-        .single(),
-      supabase.from("associations").select("id, titre, objet, adrs_libcommune").limit(3),
-    ])
-    lastRun = ingestionResult.data
-    featured = featuredResult.data ?? []
-  }
-
-  const formattedDate = lastRun?.imported_at
-    ? dateFormatter.format(new Date(lastRun.imported_at))
-    : null
-
-  const formattedCount = lastRun?.row_count ? numberFormatter.format(lastRun.row_count) : null
+  const lastRun = isSupabaseConfigured() ? await getLastIngestion() : null
 
   return (
-    <div>
-      <section className="bg-brand-yellow">
-        <div className="page-container flex flex-col items-center gap-8 py-16 text-center">
-          <div className="flex flex-col items-center gap-4 sm:flex-row sm:text-left">
-            <Image
-              src="/brand/hero-illustration.png"
-              alt=""
-              width={220}
-              height={315}
-              className="h-auto w-40 shrink-0 sm:w-52"
-              priority
-            />
-            <h1 className="font-heading text-4xl leading-tight text-brand-dark sm:text-6xl">
-              Trouve ton asso de rêve
-            </h1>
+    <>
+      <section className="bg-shell text-shell-foreground">
+        <div className="page-container pt-10 pb-16 sm:pt-16 sm:pb-24">
+          <h1 className="max-w-4xl text-4xl leading-[1.05] font-extrabold tracking-[-0.03em] text-balance sm:text-6xl">
+            Toutes les associations de France, près de chez vous.
+          </h1>
+          <p className="mt-4 max-w-2xl text-lg text-shell-muted text-pretty">
+            {lastRun
+              ? `${numberFormatter.format(lastRun.rowCount)} associations du Répertoire national, mises à jour le ${formatDate(lastRun.importedAt)}, complétées par les associations elles-mêmes.`
+              : "Les associations du Répertoire national, complétées par les associations elles-mêmes."}
+          </p>
+
+          <div className="mt-8 max-w-5xl">
+            <SearchForm size="hero" />
           </div>
 
-          <div className="flex w-full max-w-3xl flex-col items-center gap-4">
-            <SearchBar />
+          <nav aria-label="Explorer par thème" className="mt-6 flex flex-wrap items-center gap-2 text-sm">
+            <span className="mr-1 font-semibold">Explorer :</span>
+            {POPULAR_THEMES.map((t) => (
+              <Link
+                key={t.code}
+                href={searchHref({ theme: t.code })}
+                className="inline-flex items-center gap-2 rounded-full bg-white/12 px-3.5 py-1.5 font-semibold transition-colors hover:bg-white/22 focus-visible:outline-2 focus-visible:outline-white"
+              >
+                <span aria-hidden className={cn("size-2.5 rounded-full", themeBandClass(t.code))} />
+                {t.label}
+              </Link>
+            ))}
+          </nav>
 
-            {/* Decorative for now — the associations schema has no category
-                taxonomy yet, so these don't filter results. */}
-            <div className="flex flex-wrap justify-center gap-3">
-              {CATEGORIES.map((label, i) =>
-                i === 0 ? (
-                  <Badge key={label} className="px-5 py-2 text-sm">
-                    {label}
-                  </Badge>
-                ) : (
-                  <Badge
-                    key={label}
-                    variant="outline"
-                    className="bg-white px-5 py-2 text-sm text-muted-foreground"
-                  >
-                    {label}
-                  </Badge>
-                )
-              )}
-            </div>
-          </div>
-
-          {formattedDate && formattedCount && (
-            <p className="text-sm text-brand-dark/70">
-              Données mises à jour le {formattedDate} · {formattedCount} associations
-            </p>
-          )}
+          <ul aria-label="Comment lire une carte" className="mt-14 grid gap-6 sm:grid-cols-3">
+            {SPECIMENS.map(({ card, legend }) => (
+              <li key={legend} className="flex flex-col gap-3">
+                <div className="flex flex-1 text-foreground">
+                  <AssociationCard result={card} specimen />
+                </div>
+                <p className="text-sm text-shell-muted">{legend}</p>
+              </li>
+            ))}
+          </ul>
         </div>
       </section>
 
-      {featured.length > 0 && (
-        <section className="page-container grid gap-6 py-16 sm:grid-cols-3">
-          {featured.map((association, i) => {
-            const accent = CARD_ACCENTS[i % CARD_ACCENTS.length]
-            return (
-              <Card key={association.id} className={cn("overflow-hidden py-0", accent.wrap)}>
-                <div className={accent.strip} />
-                <CardContent className="flex flex-1 flex-col gap-2 pb-4">
-                  <p className="font-heading text-sm text-foreground">{association.titre}</p>
-                  {association.adrs_libcommune && (
-                    <p className="text-xs text-muted-foreground">{association.adrs_libcommune}</p>
-                  )}
-                  {association.objet && (
-                    <p className="line-clamp-3 flex-1 text-xs text-muted-foreground">
-                      {association.objet}
-                    </p>
-                  )}
-                  <Link
-                    href={`/association/${encodeURIComponent(association.id)}`}
-                    className={cn(
-                      buttonVariants(),
-                      "mt-2 rounded-2xl font-heading text-white",
-                      accent.cta
-                    )}
-                  >
-                    en savoir plus
-                  </Link>
-                </CardContent>
-              </Card>
-            )
-          })}
-        </section>
-      )}
-    </div>
+      <section className="page-container py-16">
+        <h2 className="text-2xl font-extrabold tracking-tight">Vous gérez une association ?</h2>
+        <p className="mt-3 max-w-prose text-muted-foreground">
+          Les données publiques sont souvent incomplètes : pas de contact, une adresse ancienne, une description
+          d&apos;une ligne. Retrouvez votre association, connectez-vous et revendiquez sa page pour corriger et
+          compléter ses informations. C&apos;est gratuit.
+        </p>
+        <Link href="/search" className={cn(buttonVariants(), "mt-5 h-11 gap-2 rounded-full px-5 text-base font-bold")}>
+          Trouver mon association
+          <ArrowRight aria-hidden className="size-4" />
+        </Link>
+      </section>
+    </>
   )
 }
