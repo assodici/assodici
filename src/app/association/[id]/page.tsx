@@ -1,208 +1,181 @@
+import type { Metadata } from "next"
 import { Suspense } from "react"
 import { notFound } from "next/navigation"
-import { z } from "zod"
-import { createPublicClient, isSupabaseConfigured } from "@/lib/supabase/server"
-import { Card, CardContent } from "@/components/ui/card"
-import { Button, buttonVariants } from "@/components/ui/button"
+import { ExternalLink, Mail, MapPin, Phone } from "lucide-react"
+import { AssociationMap } from "@/components/association-map"
+import { ClaimCard } from "@/components/claim-card"
+import { DissolvedBadge, OwnerStamp, ThemeBand } from "@/components/card-marks"
+import { getAssociation, isAssociationId, type Association } from "@/lib/associations"
+import { displayName, formatDate, formatPlace, foundedYear, safeWebsiteUrl, sentenceCase } from "@/lib/format"
+import { isSupabaseConfigured } from "@/lib/supabase/server"
 import { cn } from "@/lib/utils"
 
-const AssociationSchema = z.object({
-  id: z.string(),
-  siret: z.string().nullable(),
-  titre: z.string(),
-  objet: z.string().nullable(),
-  nature: z.string().nullable(),
-  position: z.string().nullable(),
-  groupement: z.string().nullable(),
-  date_creat: z.string().nullable(),
-  date_publi: z.string().nullable(),
-  date_disso: z.string().nullable(),
-  adrs_numvoie: z.string().nullable(),
-  adrs_typevoie: z.string().nullable(),
-  adrs_libvoie: z.string().nullable(),
-  adrs_complement: z.string().nullable(),
-  adrs_codepostal: z.string().nullable(),
-  adrs_libcommune: z.string().nullable(),
-  telephone: z.string().nullable(),
-  email: z.string().nullable(),
-  siteweb: z.string().nullable(),
-})
+type Params = Promise<{ id: string }>
 
-type Association = z.infer<typeof AssociationSchema>
+async function load(id: string): Promise<Association | null> {
+  if (!isAssociationId(id) || !isSupabaseConfigured()) return null
+  return getAssociation(id)
+}
 
-// Waldec uses 0001-01-01 as a "no date" sentinel instead of NULL (~86% of
-// date_disso rows) — treat it as absent rather than rendering a bogus date.
-const NO_DATE = "0001-01-01"
+export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
+  const association = await load((await params).id).catch(() => null)
+  if (!association) return { title: "Association introuvable" }
+  const place = formatPlace(association.city, association.postalCode)
+  return {
+    title: displayName(association.name),
+    description: [place, association.description?.slice(0, 150)].filter(Boolean).join(" · "),
+  }
+}
 
-const dateFormatter = new Intl.DateTimeFormat("fr-FR", { dateStyle: "long" })
-
-function safeWebsiteUrl(value: string | null): string | null {
+function Fact({ label, value, mono }: { label: string; value: string | null; mono?: boolean }) {
   if (!value) return null
-  try {
-    const url = new URL(value)
-    return url.protocol === "http:" || url.protocol === "https:" ? url.toString() : null
-  } catch {
-    return null
-  }
-}
-
-function formatAddress(a: Association): string | null {
-  const street = [a.adrs_numvoie, a.adrs_typevoie, a.adrs_libvoie].filter(Boolean).join(" ")
-  const city = [a.adrs_codepostal, a.adrs_libcommune].filter(Boolean).join(" ")
-  const parts = [a.adrs_complement, street, city].filter(Boolean)
-  return parts.length ? parts.join(", ") : null
-}
-
-function formatDate(value: string | null): string | null {
-  return value && value !== NO_DATE ? dateFormatter.format(new Date(value)) : null
-}
-
-function foundedYear(value: string | null): number | null {
-  return value && value !== NO_DATE ? new Date(value).getFullYear() : null
-}
-
-function StubActionCard({ title, cta }: { title: string; cta: string }) {
   return (
-    <Card className="bg-brand-cream text-center">
-      <CardContent>
-        <h2 className="font-heading text-lg text-brand-dark">{title}</h2>
-        <p className="mt-2 text-xs text-muted-foreground">
-          Critères, âge, prix de l&apos;adhésion, jour d&apos;activité... — bientôt disponible.
-        </p>
-        <Button disabled className="mt-4 w-full rounded-2xl">
-          {cta}
-        </Button>
-      </CardContent>
-    </Card>
-  )
-}
-
-async function AssociationDetails({ id }: { id: string }) {
-  if (!isSupabaseConfigured()) {
-    return (
-      <div className="page-container py-16 text-center text-muted-foreground">
-        Service momentanément indisponible. Réessayez plus tard.
-      </div>
-    )
-  }
-
-  const supabase = createPublicClient()
-  const { data, error } = await supabase
-    .from("associations")
-    .select(
-      "id, siret, titre, objet, nature, position, groupement, date_creat, date_publi, date_disso, adrs_numvoie, adrs_typevoie, adrs_libvoie, adrs_complement, adrs_codepostal, adrs_libcommune, telephone, email, siteweb"
-    )
-    .eq("id", id)
-    .single()
-
-  if (error || !data) notFound()
-
-  const parsed = AssociationSchema.safeParse(data)
-  if (!parsed.success) {
-    console.error(`associations row ${id} has an unexpected shape:`, parsed.error)
-    notFound()
-  }
-
-  const association = parsed.data
-  const address = formatAddress(association)
-  const dissolvedAt = formatDate(association.date_disso)
-  const since = foundedYear(association.date_creat)
-  const website = safeWebsiteUrl(association.siteweb)
-  const mapsUrl = address
-    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
-    : null
-
-  return (
-    <div className="flex flex-col">
-      <div className="bg-brand-blue text-white">
-        <div className="page-container flex flex-wrap items-center gap-6 py-10">
-          <div className="h-28 w-28 shrink-0 rounded-2xl bg-white/20" aria-hidden />
-          <div className="flex flex-col gap-2">
-            {dissolvedAt && (
-              <p className="text-xs font-medium text-brand-yellow">
-                Association dissoute le {dissolvedAt}
-              </p>
-            )}
-            <h1 className="font-heading text-2xl leading-tight sm:text-3xl">{association.titre}</h1>
-            <div className="flex flex-wrap gap-x-8 gap-y-1 text-sm text-white/90">
-              {association.adrs_libcommune && <span>{association.adrs_libcommune}</span>}
-              {since && <span>Depuis {since}</span>}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex-1 bg-brand-green">
-        <div className="page-container grid gap-6 py-10 lg:grid-cols-[1fr_320px]">
-          <div className="flex flex-col gap-6">
-            {association.objet && (
-              <Card className="bg-brand-cream">
-                <CardContent>
-                  <h2 className="font-heading text-lg text-brand-dark">à propos</h2>
-                  <p className="mt-4 text-sm whitespace-pre-line text-brand-dark/80">
-                    {association.objet}
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-
-          <div className="flex flex-col gap-6">
-            <StubActionCard title="devenir adhérent" cta="Rejoindre l'asso" />
-            <StubActionCard title="devenir bénévole" cta="Proposer mon aide" />
-
-            <Card className="bg-brand-cream">
-              <CardContent>
-                <h2 className="font-heading text-lg text-brand-dark">infos pratiques</h2>
-                <div className="mt-4 flex flex-col gap-2 text-sm text-brand-dark/80">
-                  {address && <p>{address}</p>}
-                  {association.telephone && <p>{association.telephone}</p>}
-                  {association.email && <p>{association.email}</p>}
-                  {website && (
-                    <a
-                      href={website}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="underline"
-                    >
-                      {website}
-                    </a>
-                  )}
-                  {!address && !association.telephone && !association.email && !website && (
-                    <p className="text-muted-foreground">Aucune information disponible.</p>
-                  )}
-                </div>
-                {mapsUrl && (
-                  <a
-                    href={mapsUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={cn(buttonVariants(), "mt-4 w-full rounded-2xl")}
-                  >
-                    Voir sur la carte
-                  </a>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </div>
+    <div className="flex justify-between gap-4 py-2">
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className={cn("text-right", mono && "font-mono")}>{value}</dd>
     </div>
   )
 }
 
-export default function AssociationPage({
-  params,
-}: {
-  params: Promise<{ id: string }>
-}) {
+function ContactLine({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <li className="flex gap-3">
+      <span aria-hidden className="mt-0.5 text-muted-foreground [&_svg]:size-4">
+        {icon}
+      </span>
+      <span className="min-w-0 break-words">{children}</span>
+    </li>
+  )
+}
+
+async function AssociationDetails({ id }: { id: string }) {
+  const association = await load(id)
+  if (!association) notFound()
+
+  const a = association
+  const name = displayName(a.name)
+  const place = formatPlace(a.city, a.postalCode)
+  const fullAddress = [a.address, [a.postalCode, a.city && displayName(a.city)].filter(Boolean).join(" ")]
+    .filter(Boolean)
+    .join(", ")
+  const website = safeWebsiteUrl(a.website)
+  const year = foundedYear(a.foundedOn)
+  const dissolvedOn = formatDate(a.dissolvedOn)
+  const hasContact = Boolean(fullAddress || a.email || a.phone || website)
+
+  return (
+    <>
+      <section className="bg-shell">
+        <div className="page-container py-8 sm:py-12">
+          <article className={cn("relative overflow-hidden rounded-2xl bg-card shadow-[0_18px_40px_-20px_rgb(0_0_0/0.6)]", !a.isActive && "bg-muted")}>
+            <ThemeBand themeCode={a.themeCode} className="h-4" />
+            {!a.isActive && <div aria-hidden className="border-t-2 border-dashed border-muted-foreground/60" />}
+            <div className="flex flex-col gap-6 p-6 sm:flex-row sm:items-end sm:justify-between sm:p-8">
+              <div className="min-w-0">
+                <p className="flex flex-wrap items-center gap-x-4 gap-y-2 font-mono text-sm text-muted-foreground">
+                  <span>{a.id}</span>
+                  {year && <span>Depuis {year}</span>}
+                  {!a.isActive && <DissolvedBadge className="font-sans text-foreground" />}
+                </p>
+                <h1
+                  className={cn(
+                    "mt-3 text-3xl leading-tight font-extrabold tracking-[-0.02em] text-balance sm:text-5xl",
+                    !a.isActive && "line-through decoration-[3px]"
+                  )}
+                >
+                  {name}
+                </h1>
+                <p className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-lg">
+                  {place && <span>{place}</span>}
+                  {a.themeLabel && <span className="font-semibold">{a.themeLabel}</span>}
+                </p>
+                {a.subthemeLabel && <p className="mt-1 text-muted-foreground">{a.subthemeLabel}</p>}
+                {dissolvedOn && <p className="mt-3 font-semibold">Dissoute le {dissolvedOn}.</p>}
+              </div>
+              {a.owner && <OwnerStamp size="lg" className="self-end" />}
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <div className="page-container grid gap-8 py-10 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="flex flex-col gap-8">
+          <section>
+            <h2 className="text-xl font-extrabold tracking-tight">Présentation</h2>
+            {a.description ? (
+              <p className="mt-3 max-w-prose whitespace-pre-line text-pretty">{sentenceCase(a.description)}</p>
+            ) : (
+              <p className="mt-3 text-muted-foreground">Aucune description n&apos;a été déclarée.</p>
+            )}
+            {a.owner && (
+              <p className="mt-4 text-sm text-muted-foreground">
+                Informations fournies par l&apos;association, mises à jour le {formatDate(a.owner.updatedAt)}.
+                {a.name !== a.officialName && <> Nom déclaré au RNA : {displayName(a.officialName)}.</>}
+              </p>
+            )}
+          </section>
+          {fullAddress && <AssociationMap address={fullAddress} title={name} className="h-72" />}
+        </div>
+
+        <aside className="flex flex-col gap-6">
+          <section className="rounded-xl bg-card p-5 ring-1 ring-border">
+            <h2 className="font-bold">Coordonnées</h2>
+            {hasContact ? (
+              <ul className="mt-3 flex flex-col gap-3 text-sm">
+                {fullAddress && <ContactLine icon={<MapPin />}>{fullAddress}</ContactLine>}
+                {a.email && (
+                  <ContactLine icon={<Mail />}>
+                    <a href={`mailto:${a.email}`} className="underline">{a.email}</a>
+                  </ContactLine>
+                )}
+                {a.phone && (
+                  <ContactLine icon={<Phone />}>
+                    <a href={`tel:${a.phone.replace(/\s/g, "")}`} className="underline">{a.phone}</a>
+                  </ContactLine>
+                )}
+                {website && (
+                  <ContactLine icon={<ExternalLink />}>
+                    <a href={website} target="_blank" rel="noopener noreferrer nofollow" className="underline">
+                      {website.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "")}
+                    </a>
+                  </ContactLine>
+                )}
+              </ul>
+            ) : (
+              <p className="mt-2 text-sm text-muted-foreground">Aucune coordonnée publiée.</p>
+            )}
+          </section>
+
+          <Suspense fallback={null}>
+            <ClaimCard association={a} />
+          </Suspense>
+
+          <section className="rounded-xl bg-card p-5 ring-1 ring-border">
+            <h2 className="font-bold">Fiche officielle</h2>
+            <dl className="mt-2 divide-y divide-border text-sm">
+              <Fact label="N° RNA" value={a.id} mono />
+              <Fact label="SIRET" value={a.siret} mono />
+              <Fact label="Création" value={formatDate(a.foundedOn)} />
+              <Fact label="Publication au JO" value={formatDate(a.publishedOn)} />
+              <Fact label="Dissolution" value={dissolvedOn} />
+            </dl>
+            <p className="mt-3 text-xs text-muted-foreground">Source : Répertoire national des associations.</p>
+          </section>
+        </aside>
+      </div>
+    </>
+  )
+}
+
+export default function AssociationPage({ params }: { params: Params }) {
   return (
     <Suspense
       fallback={
-        <div className="flex animate-pulse flex-col gap-6 py-10">
-          <div className="page-container h-32 rounded-2xl bg-muted" />
-          <div className="page-container h-64 rounded-2xl bg-muted" />
-        </div>
+        <section className="bg-shell">
+          <div className="page-container py-12">
+            <div className="h-56 animate-pulse rounded-2xl bg-card/80" />
+          </div>
+        </section>
       }
     >
       {params.then(({ id }) => (

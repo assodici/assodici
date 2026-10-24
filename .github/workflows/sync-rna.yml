@@ -4,11 +4,16 @@ on:
   schedule:
     - cron: '0 4 * * 1'  # Monday 4am UTC
   workflow_dispatch:
+    inputs:
+      force:
+        description: Rebuild even if the dataset is unchanged
+        type: boolean
+        default: false
 
 jobs:
   sync:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
 
     steps:
       - uses: actions/checkout@v4
@@ -26,3 +31,4 @@ jobs:
         run: python scripts/sync-rna-waldec.py
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          FORCE: ${{ inputs.force && '1' || '' }}

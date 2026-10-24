@@ -3,7 +3,7 @@
 
 Architecture:
   data.gouv.fr (Parquet) → DuckDB stream → psycopg2 chunked COPY → associations_new
-  → atomic RENAME swap into associations → search table rebuilt the same way
+  → generated search_vector + indexes → atomic RENAME swap into associations
   → ingestion_runs audit log
 
 Every COPY statement is capped at CHUNK_ROWS rows to stay under pooler statement
@@ -187,92 +187,24 @@ def log_run(db_url: str, status: str, last_modified, filesize: int, **kwargs) ->
         print(f"WARNING: could not write ingestion_runs: {err}", file=sys.stderr)
 
 
-_SEARCH_COLS_SQL = "id, titre, objet, adrs_libcommune, adrs_codepostal"
+# Full-text search lives on associations itself: Postgres computes the generated
+# column during COPY, so there is no separate search table to maintain. This
+# script is the source of truth for the expression and the indexes.
+SEARCH_VECTOR_SQL = """
+    setweight(to_tsvector('french'::regconfig, public.immutable_unaccent(
+        coalesce(titre, '') || ' ' || coalesce(titre_court, ''))), 'A')
+    || setweight(to_tsvector('french'::regconfig, public.immutable_unaccent(coalesce(objet, ''))), 'B')
+    || setweight(to_tsvector('simple'::regconfig, public.immutable_unaccent(coalesce(adrs_libcommune, ''))), 'C')
+"""
 
-
-def _rebuild_search_table(db_url: str) -> int:
-    """Rebuild associations_search from fresh associations data.
-
-    Builds associations_search_new from scratch (unindexed, for fast bulk
-    load via the same two-connection streaming pattern as the main table),
-    adds its primary key and GIN indexes, then swaps it into place with
-    _swap_into_place. Readers never see a truncated or unindexed search table.
-    """
-    pg = connect_pg(db_url)
-    with pg.cursor() as cur:
-        cur.execute(
-            "DROP TABLE IF EXISTS associations_search_new; "
-            "CREATE TABLE associations_search_new (LIKE associations_search INCLUDING GENERATED)"
-        )
-    pg.commit()
-    pg.close()
-
-    read_pg = connect_pg(db_url)
-    write_pg = connect_pg(db_url)
-    try:
-        read_cur = read_pg.cursor("stream_search_rebuild")
-        read_cur.execute(f"SELECT {_SEARCH_COLS_SQL} FROM associations")
-
-        def _pg_iter():
-            while True:
-                batch = read_cur.fetchmany(CHUNK_ROWS)
-                if not batch:
-                    return
-                yield from batch
-
-        total = _copy_iter_chunks(
-            write_pg, _pg_iter(), "associations_search_new", "search", _SEARCH_COLS_SQL
-        )
-        read_cur.close()
-    finally:
-        read_pg.close()
-        write_pg.close()
-
-    pg = connect_pg(db_url)
-    with pg.cursor() as cur:
-        print("  Adding primary key...")
-        cur.execute("ALTER TABLE associations_search_new ADD PRIMARY KEY (id)")
-        print("  Building search_vector GIN index...")
-        cur.execute(
-            "CREATE INDEX associations_search_new_fts "
-            "ON public.associations_search_new USING gin(search_vector)"
-        )
-        print("  Building trigram GIN index...")
-        cur.execute(
-            "CREATE INDEX associations_search_new_trgm "
-            "ON public.associations_search_new USING gin(titre gin_trgm_ops)"
-        )
-        print("  Building geo lookup indexes...")
-        cur.execute(
-            "CREATE INDEX associations_search_new_codepostal "
-            "ON public.associations_search_new (adrs_codepostal)"
-        )
-        cur.execute(
-            "CREATE INDEX associations_search_new_libcommune_lower "
-            "ON public.associations_search_new (lower(adrs_libcommune))"
-        )
-    pg.commit()
-
-    print("  Swapping search table into place...")
-    _swap_into_place(pg, "associations_search_new", "associations_search")
-    with pg.cursor() as cur:
-        cur.execute(
-            "ALTER TABLE associations_search "
-            "RENAME CONSTRAINT associations_search_new_pkey TO associations_search_pkey"
-        )
-        cur.execute("ALTER INDEX associations_search_new_fts RENAME TO associations_search_fts")
-        cur.execute("ALTER INDEX associations_search_new_trgm RENAME TO associations_search_trgm")
-        cur.execute(
-            "ALTER INDEX associations_search_new_codepostal "
-            "RENAME TO associations_search_codepostal_idx"
-        )
-        cur.execute(
-            "ALTER INDEX associations_search_new_libcommune_lower "
-            "RENAME TO associations_search_libcommune_lower_idx"
-        )
-    pg.commit()
-    pg.close()
-    return total
+# Live index name → definition. Built on associations_new as <name>_new, renamed after the swap.
+INDEXES = {
+    "associations_search_vector_idx": "USING gin (search_vector)",
+    "associations_titre_trgm_idx": "USING gin (public.immutable_unaccent(lower(titre)) extensions.gin_trgm_ops)",
+    "associations_codepostal_idx": "(adrs_codepostal text_pattern_ops)",
+    "associations_commune_idx": "(public.immutable_unaccent(lower(adrs_libcommune)) text_pattern_ops)",
+    "associations_objet_social1_idx": "(objet_social1)",
+}
 
 
 def main() -> None:
@@ -295,7 +227,8 @@ def main() -> None:
     pg.commit()
     pg.close()
 
-    if prev and str(prev[0]) == last_modified and prev[1] == filesize:
+    unchanged = prev and str(prev[0]) == last_modified and prev[1] == filesize
+    if unchanged and not os.environ.get("FORCE"):
         print("Dataset unchanged — logging skip.")
         log_run(db_url, "skipped", last_modified, filesize)
         return
@@ -315,6 +248,12 @@ def main() -> None:
                 "DROP TABLE IF EXISTS associations_new; "
                 "CREATE TABLE associations_new "
                 "(LIKE associations INCLUDING DEFAULTS);"
+                # LIKE copies a generated column as a plain one; recreate it from SEARCH_VECTOR_SQL
+                "ALTER TABLE associations_new DROP COLUMN IF EXISTS search_vector;"
+            )
+            cur.execute(
+                "ALTER TABLE associations_new ADD COLUMN search_vector tsvector "
+                f"GENERATED ALWAYS AS ({SEARCH_VECTOR_SQL}) STORED"
             )
         pg.commit()
 
@@ -334,9 +273,13 @@ def main() -> None:
         if db_count != inserted:
             raise ValueError(f"Row count mismatch: Python={inserted}, DB={db_count}")
 
-        print("Adding primary key to associations_new...")
+        print("Adding primary key and indexes to associations_new...")
         with pg.cursor() as cur:
             cur.execute("ALTER TABLE associations_new ADD PRIMARY KEY (id)")
+            for name, definition in INDEXES.items():
+                print(f"  {name}...")
+                cur.execute(f"CREATE INDEX {name}_new ON public.associations_new {definition}")
+            cur.execute("ANALYZE associations_new")
         pg.commit()
 
         print("Swapping associations_new into place...")
@@ -346,13 +289,10 @@ def main() -> None:
                 "ALTER TABLE associations "
                 "RENAME CONSTRAINT associations_new_pkey TO associations_pkey"
             )
+            for name in INDEXES:
+                cur.execute(f"ALTER INDEX {name}_new RENAME TO {name}")
         pg.commit()
         pg.close()
-
-        # Rebuild dedicated search table the same way (build fresh, then swap)
-        print("Rebuilding search table (this takes a few minutes)...")
-        search_rows = _rebuild_search_table(db_url)
-        print(f"  search table: {search_rows:,} rows, indexes rebuilt.")
 
         log_run(db_url, "success", last_modified, filesize, row_count=inserted)
         print(f"Done. {inserted:,} rows in production.")

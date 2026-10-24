@@ -29,10 +29,14 @@ export async function createServerClient() {
   )
 }
 
-export const getUser = cache(async () => {
+export type SessionUser = { id: string }
+
+// getClaims verifies the JWT locally against the project's asymmetric signing keys (JWKS fetched once),
+// so no Auth server round trip per request, unlike getUser().
+export const getUser = cache(async (): Promise<SessionUser | null> => {
   const supabase = await createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  return user
+  const { data } = await supabase.auth.getClaims()
+  return data?.claims.sub ? { id: data.claims.sub } : null
 })
 
 // For use inside "use cache" functions — no cookies, public read-only access

@@ -1,36 +1,64 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Assodici
 
-## Getting Started
+Mise en relation d'associations et particuliers. Search and browse French associations from the national RNA (Waldec) register.
 
-First, run the development server:
+## Stack
+
+- Next.js 16 (App Router, Cache Components), React 19, TypeScript
+- Bun as package manager and script runner
+- Tailwind CSS v4, shadcn/ui (`base-nova`, Base UI primitives), lucide-react icons
+- Supabase (Postgres full-text search, Auth via magic link, RLS), Zod for validation
+- Python ingestion script synced weekly by GitHub Actions
+- Deployed on Vercel (Analytics + Speed Insights)
+
+## Getting started
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+bun install
+cp .env.example .env.local   # fill in the values below
+bun dev                      # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+| Variable | Purpose |
+|---|---|
+| `SITE_URL` | Public site URL, used for auth redirects |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase publishable key |
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Without the Supabase variables the app still renders, with a service status banner instead of data.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Scripts
 
-## Learn More
+```bash
+bun dev          # dev server
+bun run build    # production build
+bun start        # serve production build
+bun lint         # ESLint
+bun run doctor   # React Doctor scan
+bun run check    # helper self-checks
+bun run db:types # regenerate Supabase types from the live database
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Data ingestion
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+`scripts/sync-rna-waldec.py` downloads the RNA Waldec Parquet from data.gouv.fr, bulk-loads it into Postgres with a generated full-text search column and its indexes, and swaps the new table into place atomically. Search runs in Postgres (`search_associations`), with no separate index to maintain. It runs every Monday at 04:00 UTC via `.github/workflows/sync-rna.yml` (secret: `SUPABASE_DB_URL`) and can be triggered manually.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+pip install -r scripts/requirements.txt
+SUPABASE_DB_URL=postgres://... python scripts/sync-rna-waldec.py
+```
 
-## Deploy on Vercel
+`scripts/analyse-waldec.py` checks the Parquet for data quality issues against the spec in `docs/`.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Project layout
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+src/app/            routes (home, search, association/[id] + edit, about, legal, login, auth/confirm)
+src/components/     app components; ui/ holds shadcn primitives
+src/lib/supabase/   server clients and generated database types
+src/lib/            data access (associations.ts), formatting, schemas, themes
+src/proxy.ts        refreshes the Supabase session on each request
+scripts/            Python ingestion and analysis
+supabase/           Auth email templates
+docs/               RNA spec and ingestion notes
+```

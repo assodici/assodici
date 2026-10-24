@@ -1,0 +1,62 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/assigned.html"
+        ],
+        "createdAt": "2026-10-24T10:47:54.133Z",
+        "reason": "decision-round sketches, not shipped UI: spent hand kept for reference"
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/challenger-wayfinding.html"
+        ],
+        "createdAt": "2026-10-24T10:47:54.138Z",
+        "reason": "decision-round sketches, not shipped UI: spent hand kept for reference"
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/canon.html"
+        ],
+        "createdAt": "2026-10-24T10:47:54.144Z",
+        "reason": "decision-round sketches, not shipped UI: spent hand kept for reference"
+      },
+      {
+        "rule": "border-accent-on-rounded",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/model-pick.html"
+        ],
+        "createdAt": "2026-10-24T10:47:54.152Z",
+        "reason": "decision-round sketches, not shipped UI: spent hand kept for reference"
+      },
+      {
+        "rule": "hero-eyebrow-chip",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/model-pick.html"
+        ],
+        "createdAt": "2026-10-24T10:47:54.158Z",
+        "reason": "decision-round sketches, not shipped UI: spent hand kept for reference"
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/model-pick.html"
+        ],
+        "createdAt": "2026-10-24T10:47:54.164Z",
+        "reason": "decision-round sketches, not shipped UI: spent hand kept for reference"
+      }
+    ]
+  }
+}

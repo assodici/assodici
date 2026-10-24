@@ -1,24 +1,20 @@
 import type {Metadata} from "next"
-import {Bungee, Geist_Mono, Noto_Sans} from "next/font/google"
+import {JetBrains_Mono, Schibsted_Grotesk} from "next/font/google"
 import "./globals.css"
 import {cn} from "@/lib/utils"
 import {AppShell} from "@/components/app-shell";
 import { Analytics } from "@vercel/analytics/next"
 import { SpeedInsights } from "@vercel/speed-insights/next"
 
-const notoSans = Noto_Sans({variable: "--font-sans", subsets: ["latin"]})
+const schibsted = Schibsted_Grotesk({variable: "--font-schibsted", subsets: ["latin"]})
 
-const geistMono = Geist_Mono({
-    variable: "--font-geist-mono",
-    subsets: ["latin"],
-})
-
-// Brand display font (headlines, CTA labels) from the Figma design.
-const bungee = Bungee({variable: "--font-bungee", weight: "400", subsets: ["latin"]})
+// RNA and SIRET numbers and card years: the "card number" voice.
+const jetbrains = JetBrains_Mono({variable: "--font-jetbrains", subsets: ["latin"], weight: ["500"]})
 
 export const metadata: Metadata = {
-    title: "Assodici",
-    description: "Mise en relation d'associations et particuliers",
+    title: {default: "Asso d'ici · Toutes les associations près de chez vous", template: "%s · Asso d'ici"},
+    description:
+        "Recherchez parmi toutes les associations déclarées en France, près de chez vous. Données du Répertoire national des associations, complétées par les associations elles-mêmes.",
 }
 
 export default async function RootLayout({
@@ -27,13 +23,8 @@ export default async function RootLayout({
     children: React.ReactNode
 }>) {
     return (
-        <html lang={"fr"} className={cn(notoSans.variable, bungee.variable)} suppressHydrationWarning>
-        <body
-            className={cn(
-                geistMono.variable,
-                "min-h-screen bg-background font-sans text-foreground antialiased"
-            )}
-        >
+        <html lang={"fr"} className={cn(schibsted.variable, jetbrains.variable)} suppressHydrationWarning>
+        <body className="min-h-screen bg-background font-sans text-foreground antialiased">
         <Analytics/>
         <SpeedInsights/>
         <AppShell>{children}</AppShell>

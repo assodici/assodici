@@ -7,29 +7,23 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-bungee);
-  --color-brand-red: var(--brand-red);
-  --color-brand-yellow: var(--brand-yellow);
-  --color-brand-blue: var(--brand-blue);
-  --color-brand-orange: var(--brand-orange);
-  --color-brand-dark: var(--brand-dark);
-  --color-brand-green: var(--brand-green);
-  --color-brand-cream: var(--brand-cream);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
+  --font-sans: var(--font-schibsted);
+  --font-heading: var(--font-schibsted);
+  --font-mono: var(--font-jetbrains);
+  --color-shell: var(--shell);
+  --color-shell-foreground: var(--shell-foreground);
+  --color-shell-muted: var(--shell-muted);
+  --color-shell-field: var(--shell-field);
+  --color-stamp: var(--stamp);
+  --color-theme-sport: var(--theme-sport);
+  --color-theme-culture: var(--theme-culture);
+  --color-theme-solidarity: var(--theme-solidarity);
+  --color-theme-education: var(--theme-education);
+  --color-theme-health: var(--theme-health);
+  --color-theme-environment: var(--theme-environment);
+  --color-theme-civic: var(--theme-civic);
+  --color-theme-leisure: var(--theme-leisure);
+  --color-theme-economy: var(--theme-economy);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -55,96 +49,102 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* "Carte d'adhérent": ultramarine card wallet, cool cardstock cards, one band colour per theme family. */
 :root {
-  /* Asso d'ici brand palette (from Figma design) */
-  --brand-red: #c73e1d;
-  --brand-yellow: #f2ed6f;
-  --brand-blue: #4381c1;
-  --brand-orange: #f18f01;
-  --brand-dark: #111810;
+  --shell: #1f3fbf;
+  --shell-foreground: #ffffff;
+  --shell-muted: #d3dbff;
+  --shell-field: #f7f8fc;
+  --stamp: #1f3fbf;
 
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: var(--brand-blue);
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --theme-sport: #1a7f4b;
+  --theme-culture: #d63c22;
+  --theme-solidarity: #e2b007;
+  --theme-education: #0f7f86;
+  --theme-health: #c2386a;
+  --theme-environment: #5f7f1f;
+  --theme-civic: #6a4bc4;
+  --theme-leisure: #e07a1f;
+  --theme-economy: #5f6b7a;
+
+  --background: #eef1f7;
+  --foreground: #141821;
+  --card: #fbfcfe;
+  --card-foreground: #141821;
+  --popover: #fbfcfe;
+  --popover-foreground: #141821;
+  --primary: #1f3fbf;
+  --primary-foreground: #ffffff;
+  --secondary: #e3e8f6;
+  --secondary-foreground: #141821;
+  --muted: #e3e8f6;
+  --muted-foreground: #4a5163;
+  --accent: #e3e8f6;
+  --accent-foreground: #141821;
+  --destructive: #b42318;
+  --border: #d5dae5;
+  --input: #c5ccdb;
+  --ring: #1f3fbf;
+  --radius: 0.75rem;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: var(--brand-blue);
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --shell: #0d1a4d;
+  --shell-foreground: #ffffff;
+  --shell-muted: #b9c4f2;
+  --shell-field: #171c28;
+  --stamp: #9aabff;
+
+  --background: #0f131c;
+  --foreground: #eef1f7;
+  --card: #171c28;
+  --card-foreground: #eef1f7;
+  --popover: #171c28;
+  --popover-foreground: #eef1f7;
+  --primary: #9aabff;
+  --primary-foreground: #0d1a4d;
+  --secondary: #222838;
+  --secondary-foreground: #eef1f7;
+  --muted: #222838;
+  --muted-foreground: #a7afc2;
+  --accent: #222838;
+  --accent-foreground: #eef1f7;
+  --destructive: #f97066;
+  --border: #2a3142;
+  --input: #3a4256;
+  --ring: #9aabff;
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
-  body {
-    @apply bg-background text-foreground;
-  }
   html {
     @apply font-sans;
+    color-scheme: light;
+  }
+  .dark {
+    color-scheme: dark;
+  }
+  body {
+    @apply bg-background text-foreground;
+    caret-color: var(--primary);
+    /* shortcut: Schibsted's space is tight at bold weights ("À propos" reads "Àpropos"); revisit if the face changes. */
+    word-spacing: 0.05em;
+  }
+  ::selection {
+    background: color-mix(in oklab, var(--primary) 25%, transparent);
+  }
+  a {
+    text-underline-offset: 0.2em;
+  }
+  .font-mono {
+    word-spacing: normal;
   }
 }
 
 @layer components {
   .page-container {
-    @apply mx-auto w-full max-w-5xl px-4;
+    @apply mx-auto w-full max-w-6xl px-4 sm:px-6;
   }
 }

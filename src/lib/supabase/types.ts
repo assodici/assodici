@@ -1,4 +1,10 @@
-export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
 
 export type Database = {
   // Allows to automatically instantiate createClient with right options
@@ -8,6 +14,80 @@ export type Database = {
   }
   public: {
     Tables: {
+      association_profiles: {
+        Row: {
+          address: string | null
+          association_id: string
+          city: string | null
+          created_at: string
+          description: string | null
+          email: string | null
+          name: string | null
+          owner_id: string
+          phone: string | null
+          postal_code: string | null
+          search_vector: unknown
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          association_id: string
+          city?: string | null
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          name?: string | null
+          owner_id?: string
+          phone?: string | null
+          postal_code?: string | null
+          search_vector?: unknown
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          association_id?: string
+          city?: string | null
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          name?: string | null
+          owner_id?: string
+          phone?: string | null
+          postal_code?: string | null
+          search_vector?: unknown
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
+      association_themes: {
+        Row: {
+          code: string
+          label: string
+          parent_code: string
+        }
+        Insert: {
+          code: string
+          label: string
+          parent_code: string
+        }
+        Update: {
+          code?: string
+          label?: string
+          parent_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "association_themes_parent_code_fkey"
+            columns: ["parent_code"]
+            isOneToOne: false
+            referencedRelation: "association_themes"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       associations: {
         Row: {
           adrg_achemine: string | null
@@ -47,6 +127,7 @@ export type Database = {
           position: string | null
           publiweb: string | null
           rup_mi: string | null
+          search_vector: unknown
           siret: string | null
           siteweb: string | null
           source: string
@@ -93,6 +174,7 @@ export type Database = {
           position?: string | null
           publiweb?: string | null
           rup_mi?: string | null
+          search_vector?: unknown
           siret?: string | null
           siteweb?: string | null
           source?: string
@@ -139,6 +221,7 @@ export type Database = {
           position?: string | null
           publiweb?: string | null
           rup_mi?: string | null
+          search_vector?: unknown
           siret?: string | null
           siteweb?: string | null
           source?: string
@@ -146,33 +229,6 @@ export type Database = {
           titre?: string
           titre_court?: string | null
           updated_at?: string | null
-        }
-        Relationships: []
-      }
-      associations_search: {
-        Row: {
-          adrs_codepostal: string | null
-          adrs_libcommune: string | null
-          id: string
-          objet: string | null
-          search_vector: unknown
-          titre: string
-        }
-        Insert: {
-          adrs_codepostal?: string | null
-          adrs_libcommune?: string | null
-          id: string
-          objet?: string | null
-          search_vector?: unknown
-          titre: string
-        }
-        Update: {
-          adrs_codepostal?: string | null
-          adrs_libcommune?: string | null
-          id?: string
-          objet?: string | null
-          search_vector?: unknown
-          titre?: string
         }
         Relationships: []
       }
@@ -214,19 +270,32 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      immutable_unaccent: { Args: { "": string }; Returns: string }
       search_associations: {
-        Args: { lim?: number; offset_val?: number; query: string }
+        Args: {
+          include_dissolved?: boolean
+          lieu?: string
+          lim?: number
+          off?: number
+          q?: string
+          theme?: string
+        }
         Returns: {
-          adrs_codepostal: string
-          adrs_libcommune: string
+          city: string
+          description: string
+          founded_on: string
           id: string
-          objet: string
+          is_active: boolean
+          is_claimed: boolean
+          name: string
+          postal_code: string
           rank: number
-          titre: string
+          subtheme_label: string
+          theme_code: string
+          theme_label: string
+          total: number
         }[]
       }
-      show_limit: { Args: never; Returns: number }
-      show_trgm: { Args: { "": string }; Returns: string[] }
     }
     Enums: {
       [_ in never]: never
@@ -245,12 +314,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -274,11 +343,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -299,11 +368,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -324,11 +393,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -341,11 +410,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }

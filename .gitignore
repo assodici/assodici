@@ -46,3 +46,9 @@ next-env.d.ts
 
 # claude code local (personal, machine-specific) overrides
 .claude/settings.local.json
+
+# python
+__pycache__/
+
+# impeccable review captures
+/.impeccable/review/
