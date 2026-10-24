@@ -63,7 +63,7 @@ export default async function Home() {
               : "Les associations du Répertoire national, complétées par les associations elles-mêmes."}
           </p>
 
-          <div className="mt-8 max-w-5xl">
+          <div className="mt-8">
             <SearchForm size="hero" />
           </div>
 
