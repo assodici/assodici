@@ -30,8 +30,9 @@ export async function proxy(request: NextRequest) {
     }
   )
 
-  // Refresh session — do not add logic between createServerClient and getUser
-  await supabase.auth.getUser()
+  // Refresh session — do not add logic between createServerClient and getClaims.
+  // getClaims verifies the JWT locally (asymmetric keys): no Auth server call per request.
+  await supabase.auth.getClaims()
 
   return supabaseResponse
 }

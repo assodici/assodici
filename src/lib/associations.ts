@@ -18,7 +18,8 @@ export async function searchAssociations(
 ): Promise<{ results: SearchResult[]; total: number }> {
   "use cache"
   cacheTag(SEARCH_TAG)
-  cacheLife("hours")
+  // Data changes weekly (sync) or on owner edits, which invalidate SEARCH_TAG.
+  cacheLife("days")
 
   const { data, error } = await createPublicClient().rpc("search_associations", {
     q: p.q,
@@ -141,7 +142,7 @@ export async function getThemes(): Promise<{ code: string; label: string }[]> {
 
 export async function getLastIngestion(): Promise<{ importedAt: string; rowCount: number } | null> {
   "use cache"
-  cacheLife("hours")
+  cacheLife("days")
 
   const { data } = await createPublicClient()
     .from("ingestion_runs")

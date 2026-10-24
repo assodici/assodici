@@ -2,7 +2,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { AuthButton } from "@/components/buttons/auth-button"
 import { ThemeToggleButton } from "@/components/buttons/theme-toggle-button"
-import type { User } from "@supabase/supabase-js"
+import type { SessionUser } from "@/lib/supabase/server"
 
 const NAV = [
   { href: "/search", label: "Rechercher" },
@@ -13,7 +13,7 @@ const NAV = [
 export const SHELL_CONTROL =
   "text-shell-foreground hover:bg-white/12 hover:text-shell-foreground focus-visible:ring-white/70"
 
-export function SiteHeader({ user }: { user: User | null }) {
+export function SiteHeader({ user }: { user: SessionUser | null }) {
   return (
     <header className="bg-shell text-shell-foreground">
       <div className="page-container flex h-16 items-center justify-between gap-4">
@@ -25,6 +25,8 @@ export function SiteHeader({ user }: { user: User | null }) {
             height={26}
             className="h-6 w-auto sm:h-7"
             priority
+            // Already a small PNG: skip Vercel image optimization (free-tier quota).
+            unoptimized
           />
         </Link>
 

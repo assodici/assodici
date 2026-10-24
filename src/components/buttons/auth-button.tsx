@@ -3,10 +3,10 @@ import { buttonVariants } from "@/components/ui/button"
 import { logout } from "@/app/actions/auth"
 import { cn } from "@/lib/utils"
 import type { VariantProps } from "class-variance-authority"
-import type { User } from "@supabase/supabase-js"
+import type { SessionUser } from "@/lib/supabase/server"
 
 type AuthButtonProps = {
-  user: User | null
+  user: SessionUser | null
   variant?: VariantProps<typeof buttonVariants>["variant"]
   className?: string
 }
