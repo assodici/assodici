@@ -1,42 +1,45 @@
-<!--
-  Supabase Auth email template: Confirm signup (first login of a new email address)
-  Where: Supabase Dashboard -> Authentication -> Emails -> Templates -> Confirm signup
-  Subject: Bienvenue sur Asso d'ici : confirmez votre adresse
-  This file is not read by the app: Supabase email templates live in the project's Auth config.
-  Kept here so the source is versioned. Style: "Carte d'adhérent" (DESIGN.md), email-safe tables and inline CSS.
--->
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#1f3fbf;padding:40px 16px;">
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<meta name="supported-color-schemes" content="light">
+<title>Bienvenue sur Asso d'ici</title>
+</head>
+<body style="margin:0;padding:0;background-color:#1f3fbf;">
+<table role="presentation" style="width:100%;min-height:100vh;border-collapse:collapse;border-spacing:0;background-color:#1f3fbf;">
   <tr>
-    <td align="center">
-      <img src="https://www.assodici.fr/brand/logo-on-dark.png" width="180" alt="Asso d'ici" style="display:block;height:auto;margin:0 auto 28px;">
-      <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;background-color:#fbfcfe;border-radius:18px;overflow:hidden;">
+    <td style="padding:40px 16px;text-align:center;vertical-align:top;">
+      <img src="https://www.assodici.fr/brand/logo-on-dark.png" alt="Asso d'ici" style="display:block;width:180px;max-width:60%;height:auto;margin:0 auto 28px;border:0;">
+      <table role="presentation" style="width:100%;max-width:480px;margin:0 auto;border-collapse:separate;border-spacing:0;background-color:#fbfcfe;border-radius:18px;overflow:hidden;text-align:left;">
         <tr>
-          <td style="height:10px;line-height:10px;font-size:0;background-color:#141821;">&nbsp;</td>
+          <td style="height:10px;line-height:10px;font-size:0;background-color:#141821;">&#160;</td>
         </tr>
         <tr>
           <td style="padding:36px 32px 32px;font-family:Arial,Helvetica,sans-serif;color:#141821;">
-            <h1 style="margin:0 0 12px;font-size:26px;line-height:1.25;font-weight:800;">Bienvenue sur Asso d'ici</h1>
-            <p style="margin:0 0 28px;font-size:16px;line-height:1.6;color:#4a5163;">Confirmez votre adresse email pour finaliser la création de votre compte. Vous pourrez ensuite revendiquer et modifier la page de votre association.</p>
-            <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+            <h1 style="margin:0 0 12px;font-size:26px;line-height:1.25;font-weight:bold;color:#141821;">Bienvenue sur Asso d'ici</h1>
+            <p style="margin:0 0 24px;font-size:16px;line-height:1.6;color:#4a5163;">Confirmez votre adresse email pour finaliser la cr&#233;ation de votre compte. Vous pourrez ensuite revendiquer et modifier la page de votre association.</p>
+            <table role="presentation" style="width:100%;border-collapse:separate;border-spacing:0;">
               <tr>
-                <td align="center" style="border-radius:999px;background-color:#1f3fbf;">
-                  <a href="{{ .ConfirmationURL }}" style="display:block;padding:16px 24px;font-size:17px;font-weight:bold;color:#ffffff;text-decoration:none;border-radius:999px;">Confirmer et me connecter</a>
+                <td style="border-radius:999px;background-color:#1f3fbf;text-align:center;">
+                  <a href="{{ if .RedirectTo }}{{ .RedirectTo }}&{{ else }}{{ .SiteURL }}/auth/confirm?{{ end }}token_hash={{ .TokenHash }}&type=email" style="display:block;padding:16px 24px;font-family:Arial,Helvetica,sans-serif;font-size:17px;font-weight:bold;color:#ffffff;text-decoration:none;border-radius:999px;">Confirmer et me connecter</a>
                 </td>
               </tr>
             </table>
             <p style="margin:24px 0 0;font-size:13px;line-height:1.6;color:#4a5163;">
-              Le bouton ne fonctionne pas&nbsp;? Copiez ce lien dans votre navigateur&nbsp;:<br>
-              <a href="{{ .ConfirmationURL }}" style="color:#1f3fbf;word-break:break-all;">{{ .ConfirmationURL }}</a>
+              Le bouton ne fonctionne pas&#160;? Copiez ce lien dans votre navigateur&#160;:<br>
+              <a href="{{ if .RedirectTo }}{{ .RedirectTo }}&{{ else }}{{ .SiteURL }}/auth/confirm?{{ end }}token_hash={{ .TokenHash }}&type=email" style="color:#1f3fbf;word-break:break-all;">{{ if .RedirectTo }}{{ .RedirectTo }}&{{ else }}{{ .SiteURL }}/auth/confirm?{{ end }}token_hash={{ .TokenHash }}&type=email</a>
             </p>
-            <p style="margin:24px 0 0;padding-top:20px;border-top:1px solid #d5dae5;font-size:13px;line-height:1.6;color:#4a5163;">
-              Ce lien ne fonctionne qu'une fois et expire bientôt. Vous n'avez rien demandé&nbsp;? Ignorez cet email, il ne se passera rien.
-            </p>
+            <p style="margin:24px 0 0;padding-top:20px;border-top:1px solid #d5dae5;font-size:13px;line-height:1.6;color:#4a5163;">Vous n'avez rien demand&#233;&#160;? Ignorez cet email, il ne se passera rien.</p>
           </td>
         </tr>
       </table>
       <p style="margin:24px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#d3dbff;">
-        Asso d'ici · <a href="https://www.assodici.fr" style="color:#d3dbff;">assodici.fr</a>
+        Asso d'ici &#183; <a href="https://www.assodici.fr" style="color:#d3dbff;">assodici.fr</a>
       </p>
     </td>
   </tr>
 </table>
+</body>
+</html>

@@ -5,6 +5,9 @@ import { type NextRequest } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { safeNextPath } from '@/lib/url'
 
+// The types our email templates send (scripts/email_templates.py); "email" covers signup and magic link.
+const OTP_TYPES: readonly EmailOtpType[] = ['email', 'recovery', 'invite', 'email_change']
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const next = safeNextPath(searchParams.get('next'))
@@ -20,7 +23,7 @@ export async function GET(request: NextRequest) {
   }
 
   const token_hash = searchParams.get('token_hash')
-  const type = searchParams.get('type') as EmailOtpType | null
+  const type = OTP_TYPES.find((t) => t === searchParams.get('type'))
   if (token_hash && type) {
     const { error } = await supabase.auth.verifyOtp({ type, token_hash })
     if (!error) redirect(`${next}${sep}toast=loggedin`)

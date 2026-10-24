@@ -11,7 +11,9 @@ Tasks still open after the redesign. Check items off as they land; add new ones 
   1. Create a Resend account, add the domain `assodici.fr`, and add the DNS records Resend shows (SPF, DKIM, optional DMARC) at the domain registrar. Wait for "Verified".
   2. Resend → Integrations → Supabase → connect the `assodici` project (fills Supabase's SMTP settings), or paste host `smtp.resend.com`, port `465`, user `resend`, password = a Resend API key in Supabase → Authentication → Emails → SMTP Settings.
   3. Sender email `noreply@assodici.fr`, sender name `Asso d'ici`.
-- [ ] Paste the branded templates into Supabase → Authentication → Emails → Templates (subjects are in each file's header comment): `supabase/email-templates/magic-link.html` (Magic Link) and `supabase/email-templates/confirm-signup.html` (Confirm signup, sent on a new address's first login).
+  4. In Resend, keep click/open tracking off: tracking rewrites links and breaks login emails.
+- [ ] Upload the 8 branded email templates (and turn on the "email changed" / "password changed" security notifications): create a personal access token at https://supabase.com/dashboard/account/tokens, then run `SUPABASE_ACCESS_TOKEN=<token> python3 scripts/email_templates.py --push`. Source of truth: `scripts/email_templates.py`; generated HTML in `supabase/email-templates/`.
+- [ ] Supabase → Authentication → URL Configuration: Site URL `https://www.assodici.fr`, redirect URLs include `https://www.assodici.fr/**` (and the Vercel preview domain if you test there).
 - [ ] Vercel → Settings → Environment Variables: `SITE_URL` must be `https://www.assodici.fr` (or unset) for Production. It feeds canonical URLs, `robots.txt`, the sitemap and magic-link redirects.
 - [ ] Google Search Console: verify `www.assodici.fr` and submit `https://www.assodici.fr/sitemap.xml`.
 - [ ] Check the live site end to end once deployed: login by magic link, claim an association, edit it, see the stamp and the edit in search.
@@ -31,6 +33,11 @@ Tasks still open after the redesign. Check items off as they land; add new ones 
 - [ ] Design drift noted by the documenter: small owner stamp text is 8px, pagination buttons don't use the pill style, teal/olive/violet theme dots are faint on the ultramarine chips.
 - [ ] `globals.css` body `word-spacing: 0.05em` is a workaround for Schibsted's tight space at bold weights; revisit if the font changes.
 - [ ] React Doctor warnings left: detail page complexity (`src/app/association/[id]/page.tsx`), client redirect in `app-toast.tsx`.
+
+## Email notes
+
+- Links go to our own `/auth/confirm?token_hash=…&type=…` (Supabase's SSR pattern), so a login requested on a laptop works when opened on a phone.
+- Known limit: some corporate mail scanners (e.g. Microsoft Safe Links) open links before the user does, which consumes the one-time token ("lien invalide ou expiré"). Fix if it happens: send the 6-digit `{{ .Token }}` code too and add a code field on `/login`.
 
 ## SEO notes
 
