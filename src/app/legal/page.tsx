@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import { ProsePage } from "@/components/prose-page"
 import { LEGAL } from "@/lib/legal"
 
-export const metadata: Metadata = { title: "Mentions légales et confidentialité" }
+export const metadata: Metadata = { title: "Mentions légales et confidentialité", alternates: { canonical: "/legal" } }
 
 export default function LegalPage() {
   return (
