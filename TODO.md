@@ -7,10 +7,10 @@ Tasks still open after the redesign. Check items off as they land; add new ones 
 - [ ] Fill in the publisher placeholders in `src/lib/legal.ts` (name/company, status, address, publication director, contact email). They show on `/legal` and `/about`.
 - [ ] Review and rewrite the draft copy in `src/app/about/page.tsx`. Confirm or remove the commitments it makes ("nous retirerons" impostor claims) and the privacy statements on `/legal` ("ni vendues ni cédées").
 - [ ] Supabase Auth: make sure the redirect URL allow-list accepts `/auth/confirm?next=…` (e.g. `https://<domain>/**`), otherwise login can't return users to the page they came from.
-- [ ] Email sending with Resend (free: 3,000/month, 100/day). Sender: `Asso d'ici <noreply@assodici.fr>`.
-  1. Create a Resend account, add the domain `assodici.fr`, and add the DNS records Resend shows (SPF, DKIM, optional DMARC) at the domain registrar. Wait for "Verified".
+- [ ] Email sending with Resend (free: 3,000/month, 100/day). Sender: `Asso d'ici <noreply@mail.assodici.fr>` (subdomain keeps automated mail's reputation separate from `assodici.fr`).
+  1. Create a Resend account, add the domain `mail.assodici.fr` (region Ireland, Return-Path `send`, no tracking subdomain), and add every DNS record Resend shows in GoDaddy → DNS. Wait for "Verified".
   2. Resend → Integrations → Supabase → connect the `assodici` project (fills Supabase's SMTP settings), or paste host `smtp.resend.com`, port `465`, user `resend`, password = a Resend API key in Supabase → Authentication → Emails → SMTP Settings.
-  3. Sender email `noreply@assodici.fr`, sender name `Asso d'ici`.
+  3. Sender email `noreply@mail.assodici.fr`, sender name `Asso d'ici`.
   4. In Resend, keep click/open tracking off: tracking rewrites links and breaks login emails.
 - [ ] Upload the 8 branded email templates (and turn on the "email changed" / "password changed" security notifications): create a personal access token at https://supabase.com/dashboard/account/tokens, then run `SUPABASE_ACCESS_TOKEN=<token> python3 scripts/email_templates.py --push`. Source of truth: `scripts/email_templates.py`; generated HTML in `supabase/email-templates/`.
 - [ ] Supabase → Authentication → URL Configuration: Site URL `https://www.assodici.fr`, redirect URLs include `https://www.assodici.fr/**` (and the Vercel preview domain if you test there).
