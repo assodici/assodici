@@ -202,7 +202,7 @@ INDEXES = {
     "associations_search_vector_idx": "USING gin (search_vector)",
     "associations_titre_trgm_idx": "USING gin (public.immutable_unaccent(lower(titre)) extensions.gin_trgm_ops)",
     "associations_codepostal_idx": "(adrs_codepostal text_pattern_ops)",
-    "associations_commune_idx": "(public.immutable_unaccent(lower(adrs_libcommune)))",
+    "associations_commune_idx": "(public.immutable_unaccent(lower(adrs_libcommune)) text_pattern_ops)",
     "associations_objet_social1_idx": "(objet_social1)",
 }
 
