@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { LuHouse } from "react-icons/lu"
+import { House } from "lucide-react"
 import { RetryButton } from "@/components/buttons/retry-button"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -22,7 +22,7 @@ export function ErrorDisplay({ code, message, onRetry }: ErrorDisplayProps) {
       <div className="flex gap-3">
         <RetryButton onClick={handleRetry} label="Réessayer" />
         <Link href="/" className={cn(buttonVariants({ variant: "outline" }), "gap-1.5")}>
-          <LuHouse className="h-[1em] w-[1em]" />
+          <House className="h-[1em] w-[1em]" />
           Retour à l&apos;accueil
         </Link>
       </div>

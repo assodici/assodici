@@ -25,7 +25,8 @@ export function AppToast() {
     if (key) {
       const entry = PARAM_TOASTS[key]
       if (entry) {
-        entry.type === "success" ? toast.success(entry.message) : toast.error(entry.message)
+        if (entry.type === "success") toast.success(entry.message)
+        else toast.error(entry.message)
       }
       const params = new URLSearchParams(searchParams.toString())
       params.delete("toast")

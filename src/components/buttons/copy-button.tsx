@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import {LuCheck, LuCopy} from "react-icons/lu"
+import {Check, Copy} from "lucide-react"
 import {Button} from "@/components/ui/button"
 
 type CopyToClipboardButtonProps = {
@@ -44,8 +44,8 @@ export function CopyToClipboardButton({
             disabled={disabled}
             className={className}
         >
-            <LuCopy className={`${iconBase} ${copied ? "scale-0 opacity-0" : ""}`}/>
-            <LuCheck
+            <Copy className={`${iconBase} ${copied ? "scale-0 opacity-0" : ""}`}/>
+            <Check
                 className={`${iconBase} absolute scale-0 opacity-0 ${
                     copied ? "scale-100 opacity-100" : ""
                 }`}
