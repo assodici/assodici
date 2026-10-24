@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "doctor": "npx react-doctor@latest"
+    "doctor": "npx react-doctor@latest",
+    "db:types": "supabase gen types typescript --project-id qeuliugmoegksrbntnti --schema public > src/lib/supabase/types.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
@@ -36,6 +37,7 @@
     "eslint-config-next": "16.2.9",
     "react-doctor": "^0.9.12",
     "shadcn": "^4.11.0",
+    "supabase": "^2.122.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   },
@@ -45,6 +47,7 @@
   ],
   "trustedDependencies": [
     "sharp",
+    "supabase",
     "unrs-resolver"
   ]
 }
