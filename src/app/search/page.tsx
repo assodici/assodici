@@ -16,7 +16,11 @@ import {
 } from "@/lib/schemas/search-params"
 import { isSupabaseConfigured } from "@/lib/supabase/server"
 
-export const metadata: Metadata = { title: "Rechercher une association" }
+export const metadata: Metadata = {
+  title: "Rechercher une association",
+  alternates: { canonical: "/search" },
+  robots: { index: false, follow: true },
+}
 
 type RawParams = Promise<Record<string, string | string[] | undefined>>
 

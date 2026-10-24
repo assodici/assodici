@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 import { SearchForm } from "@/components/search-form"
@@ -10,6 +11,8 @@ import { isSupabaseConfigured } from "@/lib/supabase/server"
 import type { SearchResult } from "@/lib/schemas/search-result"
 import { POPULAR_THEMES, themeBandClass } from "@/lib/themes"
 import { cn } from "@/lib/utils"
+
+export const metadata: Metadata = { alternates: { canonical: "/" } }
 
 // Demonstration cards: placeholder content (marked "Exemple"), one per mark of the card language.
 const specimen = (overrides: Partial<SearchResult>): SearchResult => ({

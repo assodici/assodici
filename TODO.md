@@ -7,8 +7,13 @@ Tasks still open after the redesign. Check items off as they land; add new ones 
 - [ ] Fill in the publisher placeholders in `src/lib/legal.ts` (name/company, status, address, publication director, contact email). They show on `/legal` and `/about`.
 - [ ] Review and rewrite the draft copy in `src/app/about/page.tsx`. Confirm or remove the commitments it makes ("nous retirerons" impostor claims) and the privacy statements on `/legal` ("ni vendues ni cédées").
 - [ ] Supabase Auth: make sure the redirect URL allow-list accepts `/auth/confirm?next=…` (e.g. `https://<domain>/**`), otherwise login can't return users to the page they came from.
-- [ ] Supabase Auth: configure a custom SMTP provider. The built-in sender is rate-limited (a few emails per hour) and not meant for production magic links.
-- [ ] After merging `dev` into `main`: `gh workflow enable "Sync RNA Waldec"`. It is disabled on purpose: until the merge, the scheduled run would use main's old script and break search.
+- [ ] Email sending with Resend (free: 3,000/month, 100/day). Sender: `Asso d'ici <noreply@assodici.fr>`.
+  1. Create a Resend account, add the domain `assodici.fr`, and add the DNS records Resend shows (SPF, DKIM, optional DMARC) at the domain registrar. Wait for "Verified".
+  2. Resend → Integrations → Supabase → connect the `assodici` project (fills Supabase's SMTP settings), or paste host `smtp.resend.com`, port `465`, user `resend`, password = a Resend API key in Supabase → Authentication → Emails → SMTP Settings.
+  3. Sender email `noreply@assodici.fr`, sender name `Asso d'ici`.
+- [ ] Paste the branded templates into Supabase → Authentication → Emails → Templates (subjects are in each file's header comment): `supabase/email-templates/magic-link.html` (Magic Link) and `supabase/email-templates/confirm-signup.html` (Confirm signup, sent on a new address's first login).
+- [ ] Vercel → Settings → Environment Variables: `SITE_URL` must be `https://www.assodici.fr` (or unset) for Production. It feeds canonical URLs, `robots.txt`, the sitemap and magic-link redirects.
+- [ ] Google Search Console: verify `www.assodici.fr` and submit `https://www.assodici.fr/sitemap.xml`.
 - [ ] Check the live site end to end once deployed: login by magic link, claim an association, edit it, see the stamp and the edit in search.
 
 ## Product decisions pending (owner)
@@ -26,6 +31,12 @@ Tasks still open after the redesign. Check items off as they land; add new ones 
 - [ ] Design drift noted by the documenter: small owner stamp text is 8px, pagination buttons don't use the pill style, teal/olive/violet theme dots are faint on the ultramarine chips.
 - [ ] `globals.css` body `word-spacing: 0.05em` is a workaround for Schibsted's tight space at bold weights; revisit if the font changes.
 - [ ] React Doctor warnings left: detail page complexity (`src/app/association/[id]/page.tsx`), client redirect in `app-toast.tsx`.
+
+## SEO notes
+
+- Sitemap lists static pages only (home, search, about, legal), by choice: 2.3M association pages would invite crawling beyond the Vercel free tier. Association pages are still indexable when Google finds them through links.
+- `robots.txt` blocks search-result URLs, login, auth and edit pages; result pages are also `noindex, follow`.
+- Association pages carry a canonical URL, Open Graph tags and schema.org `NGO` JSON-LD. No social preview image yet (generating one per page costs function time).
 
 ## Cost notes (Vercel Hobby + Supabase Pro)
 

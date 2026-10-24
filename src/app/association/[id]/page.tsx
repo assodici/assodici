@@ -21,10 +21,42 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const association = await load((await params).id).catch(() => null)
   if (!association) return { title: "Association introuvable" }
   const place = formatPlace(association.city, association.postalCode)
+  const title = displayName(association.name)
+  const description = [place, association.description?.slice(0, 150)].filter(Boolean).join(" · ")
   return {
-    title: displayName(association.name),
-    description: [place, association.description?.slice(0, 150)].filter(Boolean).join(" · "),
+    title,
+    description,
+    alternates: { canonical: `/association/${encodeURIComponent(association.id)}` },
+    openGraph: { title, description },
   }
+}
+
+// schema.org data for search engines. "<" is escaped so user-provided text can't close the script tag.
+function JsonLd({ a, website }: { a: Association; website: string | null }) {
+  const data = {
+    "@context": "https://schema.org",
+    "@type": "NGO",
+    name: displayName(a.name),
+    description: a.description ?? undefined,
+    identifier: a.id,
+    foundingDate: formatDate(a.foundedOn) ? a.foundedOn : undefined,
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: a.address ?? undefined,
+      postalCode: a.postalCode ?? undefined,
+      addressLocality: a.city ? displayName(a.city) : undefined,
+      addressCountry: "FR",
+    },
+    email: a.email ?? undefined,
+    telephone: a.phone ?? undefined,
+    url: website ?? undefined,
+  }
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(data).replace(/</g, "\\u003c") }}
+    />
+  )
 }
 
 function Fact({ label, value, mono }: { label: string; value: string | null; mono?: boolean }) {
@@ -65,6 +97,7 @@ async function AssociationDetails({ id }: { id: string }) {
 
   return (
     <>
+      {a.isActive && <JsonLd a={a} website={website} />}
       <section className="bg-shell">
         <div className="page-container py-8 sm:py-12">
           <article className={cn("relative overflow-hidden rounded-2xl bg-card shadow-[0_18px_40px_-20px_rgb(0_0_0/0.6)]", !a.isActive && "bg-muted")}>

@@ -3,7 +3,7 @@ import Link from "next/link"
 import { ProsePage } from "@/components/prose-page"
 import { LEGAL } from "@/lib/legal"
 
-export const metadata: Metadata = { title: "À propos" }
+export const metadata: Metadata = { title: "À propos", alternates: { canonical: "/about" } }
 
 // TODO(user): relire et compléter ce texte (brouillon rédigé à partir de ce que fait le site).
 export default function AboutPage() {

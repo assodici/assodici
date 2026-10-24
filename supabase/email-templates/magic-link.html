@@ -1,55 +1,42 @@
 <!--
-  Supabase Auth email template: Magic Link
-  Where to paste: Supabase Dashboard -> Authentication -> Email Templates -> Magic Link
-  Subject: Votre lien de connexion – Asso d'ici
-
-  This file is not read by the app at runtime — Supabase's email templates
-  live in the project's remote Auth config (Dashboard or the Management
-  API), not in this repo. Kept here so the source is versioned and easy
-  to find/copy instead of living only in a chat transcript.
-
-  Note: the logo <img> below points at https://assodici.fr/brand/logo-on-dark.png
-  — only resolves once this branch is deployed to production.
+  Supabase Auth email template: Magic Link (returning users)
+  Where: Supabase Dashboard -> Authentication -> Emails -> Templates -> Magic Link
+  Subject: Votre lien de connexion à Asso d'ici
+  This file is not read by the app: Supabase email templates live in the project's Auth config.
+  Kept here so the source is versioned. Style: "Carte d'adhérent" (DESIGN.md), email-safe tables and inline CSS.
 -->
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#fafaf9;padding:32px 0;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#1f3fbf;padding:40px 16px;">
   <tr>
     <td align="center">
-      <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;background-color:#ffffff;border-radius:16px;overflow:hidden;">
+      <img src="https://www.assodici.fr/brand/logo-on-dark.png" width="180" alt="Asso d'ici" style="display:block;height:auto;margin:0 auto 28px;">
+      <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;background-color:#fbfcfe;border-radius:18px;overflow:hidden;">
         <tr>
-          <td style="background-color:#c73e1d;padding:28px 32px;text-align:center;">
-            <img src="https://assodici.fr/brand/logo-on-dark.png" width="160" alt="Asso d'ici" style="display:inline-block;height:auto;">
-          </td>
+          <td style="height:10px;line-height:10px;font-size:0;background-color:#141821;">&nbsp;</td>
         </tr>
         <tr>
-          <td style="padding:40px 32px;text-align:center;">
-            <h1 style="margin:0 0 20px;font-family:Arial,Helvetica,sans-serif;font-size:26px;line-height:1.3;color:#111810;">
-              Votre lien de connexion
-            </h1>
-            <p style="margin:0 0 32px;font-family:Arial,Helvetica,sans-serif;font-size:18px;line-height:1.6;color:#111810;">
-              Cliquez sur le bouton ci-dessous pour vous connecter.<br>Ce lien ne fonctionne qu'une seule fois.
-            </p>
-            <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;">
+          <td style="padding:36px 32px 32px;font-family:Arial,Helvetica,sans-serif;color:#141821;">
+            <h1 style="margin:0 0 12px;font-size:26px;line-height:1.25;font-weight:800;">Votre lien de connexion</h1>
+            <p style="margin:0 0 28px;font-size:16px;line-height:1.6;color:#4a5163;">Cliquez sur le bouton pour vous connecter à Asso d'ici. Aucun mot de passe n'est nécessaire.</p>
+            <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
               <tr>
-                <td style="border-radius:12px;background-color:#4381c1;">
-                  <a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:18px 48px;font-family:Arial,Helvetica,sans-serif;font-size:20px;font-weight:bold;color:#ffffff;text-decoration:none;border-radius:12px;">
-                    Se connecter
-                  </a>
+                <td align="center" style="border-radius:999px;background-color:#1f3fbf;">
+                  <a href="{{ .ConfirmationURL }}" style="display:block;padding:16px 24px;font-size:17px;font-weight:bold;color:#ffffff;text-decoration:none;border-radius:999px;">Se connecter</a>
                 </td>
               </tr>
             </table>
-            <p style="margin:32px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:#555555;">
-              Vous n'avez rien demandé&nbsp;? Ignorez cet email, il ne se passera rien.
+            <p style="margin:24px 0 0;font-size:13px;line-height:1.6;color:#4a5163;">
+              Le bouton ne fonctionne pas&nbsp;? Copiez ce lien dans votre navigateur&nbsp;:<br>
+              <a href="{{ .ConfirmationURL }}" style="color:#1f3fbf;word-break:break-all;">{{ .ConfirmationURL }}</a>
             </p>
-          </td>
-        </tr>
-        <tr>
-          <td style="background-color:#f2ed6f;padding:20px 32px;text-align:center;">
-            <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#111810;">
-              Asso d'ici — assodici.fr
+            <p style="margin:24px 0 0;padding-top:20px;border-top:1px solid #d5dae5;font-size:13px;line-height:1.6;color:#4a5163;">
+              Ce lien ne fonctionne qu'une fois et expire bientôt. Vous n'avez rien demandé&nbsp;? Ignorez cet email, il ne se passera rien.
             </p>
           </td>
         </tr>
       </table>
+      <p style="margin:24px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#d3dbff;">
+        Asso d'ici · <a href="https://www.assodici.fr" style="color:#d3dbff;">assodici.fr</a>
+      </p>
     </td>
   </tr>
 </table>
