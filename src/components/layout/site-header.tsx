@@ -1,10 +1,11 @@
 import Link from "next/link"
 import Image from "next/image"
-import { AuthButton } from "@/components/buttons/auth-button"
-import { ThemeToggleButton } from "@/components/buttons/theme-toggle-button"
+import { AuthButton } from "@/components/auth/auth-button"
+import { ThemeToggleButton } from "@/components/layout/theme-toggle-button"
 import type { SessionUser } from "@/lib/supabase/server"
 
 const NAV = [
+  { href: "/", label: "Accueil" },
   { href: "/search", label: "Rechercher" },
   { href: "/about", label: "À propos" },
 ]

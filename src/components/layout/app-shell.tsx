@@ -1,11 +1,11 @@
 import React, { ReactNode, Suspense } from "react"
 import { ThemeProvider as NextThemesProvider } from "next-themes"
 import { Toaster } from "@/components/ui/sonner"
-import { AppToast } from "@/components/app-toast"
-import { SiteHeader } from "@/components/site-header"
-import { SiteFooter } from "@/components/site-footer"
+import { AppToast } from "@/components/layout/app-toast"
+import { SiteHeader } from "@/components/layout/site-header"
+import { SiteFooter } from "@/components/layout/site-footer"
 import { getUser, isSupabaseConfigured } from "@/lib/supabase/server"
-import { ServiceStatusBanner } from "@/components/service-status-banner"
+import { ServiceStatusBanner } from "@/components/layout/service-status-banner"
 
 type ThemeProviderProps = React.ComponentProps<typeof NextThemesProvider>
 

@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { DissolvedBadge, OwnerStamp, ThemeBand } from "@/components/card-marks"
+import { DissolvedBadge, OwnerStamp, ThemeBand } from "@/components/association/card-marks"
 import { displayName, formatPlace, foundedYear, sentenceCase, shortThemeLabel } from "@/lib/format"
 import type { SearchResult } from "@/lib/schemas/search-result"
 import { cn } from "@/lib/utils"

@@ -3,7 +3,7 @@ import {JetBrains_Mono, Schibsted_Grotesk} from "next/font/google"
 import "./globals.css"
 import {cn} from "@/lib/utils"
 import {siteUrl} from "@/lib/url"
-import {AppShell} from "@/components/app-shell";
+import {AppShell} from "@/components/layout/app-shell";
 import { Analytics } from "@vercel/analytics/next"
 import { SpeedInsights } from "@vercel/speed-insights/next"
 

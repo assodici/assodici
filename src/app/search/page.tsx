@@ -1,9 +1,9 @@
 import type { Metadata } from "next"
 import { Suspense } from "react"
 import Link from "next/link"
-import { AssociationCard } from "@/components/association-card"
-import { Pagination } from "@/components/pagination"
-import { SearchForm } from "@/components/search-form"
+import { AssociationCard } from "@/components/association/association-card"
+import { Pagination } from "@/components/search/pagination"
+import { SearchForm } from "@/components/search/search-form"
 import { getThemes, searchAssociations } from "@/lib/associations"
 import { numberFormatter } from "@/lib/format"
 import {
@@ -97,7 +97,7 @@ async function Results({ params }: { params: SearchParams }) {
     <div className="flex flex-col gap-6">
       <p className="text-sm text-muted-foreground" aria-live="polite">
         <span className="font-bold text-foreground">
-          {capped ? "Plus de 1 000" : numberFormatter.format(total)} association{total > 1 ? "s" : ""}
+          {capped ? `Plus de ${numberFormatter.format(MAX_RESULTS)}` : numberFormatter.format(total)} association{total > 1 ? "s" : ""}
         </span>
         {params.q && <> pour « {params.q} »</>}
         {params.lieu && <> {/^\d{2,3}$/.test(params.lieu) ? "dans le" : "à"} {params.lieu}</>}

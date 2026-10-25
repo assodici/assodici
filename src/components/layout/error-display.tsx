@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { House } from "lucide-react"
-import { RetryButton } from "@/components/buttons/retry-button"
+import { RetryButton } from "@/components/layout/retry-button"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 

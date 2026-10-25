@@ -12,6 +12,8 @@ const PARAM_TOASTS: Record<string, { type: "success" | "error"; message: string 
   already_claimed: { type: "error", message: "Cette association est déjà gérée par quelqu'un d'autre." },
   claim_failed: { type: "error", message: "Revendication impossible : 5 associations maximum par compte." },
   saved: { type: "success", message: "Informations enregistrées." },
+  released: { type: "success", message: "Vous ne gérez plus cette association." },
+  release_failed: { type: "error", message: "Impossible de libérer cette association. Réessayez." },
 }
 
 const HASH_ERROR_MESSAGES: Record<string, string> = {

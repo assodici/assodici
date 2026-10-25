@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { ChevronDown, MapPin, Search } from "lucide-react"
-import { SubmitOnChange } from "@/components/submit-on-change"
+import { SubmitOnChange } from "@/components/search/submit-on-change"
 import { searchHref, type SearchParams } from "@/lib/schemas/search-params"
 import { cn } from "@/lib/utils"
 
