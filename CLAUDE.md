@@ -36,7 +36,7 @@ bunx shadcn@latest add <component>
 **Path aliases:** `@/` → `src/`, `@root/` → repo root.
 
 **Alias targets** (from `components.json`):
-- `@/components` — shared components
+- `@/components` — app components, grouped by domain: `layout/` (shell, header, footer, page chrome), `association/` (cards, claim, edit), `search/`, `auth/`. Put a new component (buttons included) in its domain folder.
 - `@/components/ui` — shadcn primitives (do not edit directly)
 - `@/lib` — utilities
 - `@/hooks` — custom hooks
@@ -45,7 +45,7 @@ bunx shadcn@latest add <component>
 
 **Icons:** lucide-react only. It has no brand icons; inline an SVG for those.
 
-**Design:** visual world "Carte d'adhérent" (see PRODUCT.md and `.impeccable/surfaces/`): ultramarine `shell` tokens, cards with a theme-colour band (`src/lib/themes.ts`), RNA number in mono, owner stamp (`src/components/card-marks.tsx`). Tokens live in `globals.css`; never hard-code colours.
+**Design:** visual world "Carte d'adhérent" (see PRODUCT.md and `.impeccable/surfaces/`): ultramarine `shell` tokens, cards with a theme-colour band (`src/lib/themes.ts`), RNA number in mono, owner stamp (`src/components/association/card-marks.tsx`). Tokens live in `globals.css`; never hard-code colours.
 
 **Toasts:** sonner.
 

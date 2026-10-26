@@ -2,7 +2,7 @@ import { z } from "zod"
 
 export const PAGE_SIZE = 18
 // search_associations ranks at most this many matches per query.
-export const MAX_RESULTS = 1000
+export const MAX_RESULTS = 100
 
 const text = (max: number) =>
   z.preprocess((v) => (typeof v === "string" ? v.trim().slice(0, max) : ""), z.string())

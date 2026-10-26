@@ -1,7 +1,7 @@
 import { Suspense } from "react"
 import Link from "next/link"
 import packageJson from "@root/package.json"
-import { CurrentYear } from "@/components/current-year"
+import { CurrentYear } from "@/components/layout/current-year"
 
 const LINKS = [
   { href: "/search", label: "Rechercher" },

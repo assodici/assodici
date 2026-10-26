@@ -1,6 +1,6 @@
 "use client"
 
-import { ErrorDisplay } from "@/components/error-display"
+import { ErrorDisplay } from "@/components/layout/error-display"
 
 type ErrorPageProps = {
   error: Error & { digest?: string }

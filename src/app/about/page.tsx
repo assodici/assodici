@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import { ProsePage } from "@/components/prose-page"
+import { ProsePage } from "@/components/layout/prose-page"
 import { LEGAL } from "@/lib/legal"
 
 export const metadata: Metadata = { title: "À propos", alternates: { canonical: "/about" } }

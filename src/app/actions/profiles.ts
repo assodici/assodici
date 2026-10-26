@@ -30,6 +30,23 @@ export async function claimAssociation(id: string) {
   redirect(`${associationPath(id)}/edit?toast=claimed`)
 }
 
+export async function releaseClaim(id: string) {
+  if (!(await getUser())) redirect(`/login?next=${encodeURIComponent(`${associationPath(id)}/edit`)}`)
+  if (!isAssociationId(id)) redirect("/")
+
+  const supabase = await createServerClient()
+  const { data, error } = await supabase
+    .from("association_profiles")
+    .delete()
+    .eq("association_id", id)
+    .select("association_id")
+  // RLS turns someone else's row into "0 rows deleted" rather than an error.
+  if (error || !data.length) redirect(`${associationPath(id)}?toast=release_failed`)
+
+  invalidate(id)
+  redirect(`${associationPath(id)}?toast=released`)
+}
+
 export type ProfileFormState = {
   error?: string
   fieldErrors?: Partial<Record<keyof Profile, string>>

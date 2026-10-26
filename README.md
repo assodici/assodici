@@ -54,7 +54,7 @@ SUPABASE_DB_URL=postgres://... python scripts/sync-rna-waldec.py
 
 ```
 src/app/            routes (home, search, association/[id] + edit, about, legal, login, auth/confirm)
-src/components/     app components; ui/ holds shadcn primitives
+src/components/     app components by domain (layout, association, search, auth); ui/ holds shadcn primitives
 src/lib/supabase/   server clients and generated database types
 src/lib/            data access (associations.ts), formatting, schemas, themes
 src/proxy.ts        refreshes the Supabase session on each request
@@ -62,3 +62,24 @@ scripts/            Python ingestion and analysis
 supabase/           Auth email templates
 docs/               RNA spec and ingestion notes
 ```
+
+## Operations notes
+
+### Email
+
+- Sent by Resend over Supabase SMTP as `Asso d'ici <noreply@mail.assodici.fr>` (free: 3,000/month, 100/day). Keep Resend click/open tracking off: it rewrites links and breaks login emails.
+- Links go to our own `/auth/confirm?token_hash=…&type=…` (Supabase's SSR pattern), so a login requested on a laptop works when opened on a phone.
+- Known limit: some corporate mail scanners (e.g. Microsoft Safe Links) open links before the user does, which consumes the one-time token ("lien invalide ou expiré"). Fix if it happens: send the 6-digit `{{ .Token }}` code too and add a code field on `/login`.
+
+### SEO
+
+- Sitemap lists static pages only (home, search, about, legal), by choice: 2.3M association pages would invite crawling beyond the Vercel free tier. Association pages are still indexable when Google finds them through links.
+- `robots.txt` blocks search-result URLs, login, auth and edit pages; result pages are also `noindex, follow`.
+- Association pages carry a canonical URL, Open Graph tags and schema.org `NGO` JSON-LD. No social preview image yet (generating one per page costs function time).
+
+### Cost (Vercel Hobby + Supabase Pro)
+
+- Auth is verified locally with `getClaims()` (asymmetric JWT keys): no Auth server call per page view.
+- Search, association pages and theme lists are cached with `"use cache"` (days/weeks) and invalidated by owner edits through cache tags; the weekly sync does not invalidate them, so data can lag up to a day after a sync.
+- The logo skips Vercel image optimization (`unoptimized`).
+- Keep an eye on: Vercel function invocations (the proxy runs on every page request) and Supabase disk during the weekly sync (old + new table coexist briefly, ~5–6 GB peak).

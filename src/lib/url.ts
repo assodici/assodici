@@ -4,8 +4,10 @@ export function siteUrl(): string {
   return "http://localhost:3000"
 }
 
-// Only same-site paths: "//evil.com" and "/\evil.com" are protocol-relative URLs browsers follow off-site.
+// Only same-site paths. Parse like a browser would: "//evil.com", "/\evil.com" and "/\t/evil.com" all leave the site.
 export function safeNextPath(value: string | null | undefined): string {
-  if (!value || !value.startsWith("/") || value.startsWith("//") || value.startsWith("/\\")) return "/"
-  return value
+  if (!value?.startsWith("/")) return "/"
+  const base = "http://same.site"
+  const url = new URL(value, base)
+  return url.origin === base ? url.pathname + url.search + url.hash : "/"
 }

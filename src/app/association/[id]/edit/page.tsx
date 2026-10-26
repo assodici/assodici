@@ -1,7 +1,8 @@
 import type { Metadata } from "next"
 import { Suspense } from "react"
 import { notFound, redirect } from "next/navigation"
-import { ProfileForm } from "@/components/profile-form"
+import { ProfileForm } from "@/components/association/profile-form"
+import { ReleaseClaimButton } from "@/components/association/release-claim-button"
 import { getAssociation, isAssociationId } from "@/lib/associations"
 import { displayName } from "@/lib/format"
 import { getUser, isSupabaseConfigured } from "@/lib/supabase/server"
@@ -44,6 +45,13 @@ async function EditContent({ id }: { id: string }) {
             website: association.website,
           }}
         />
+        <section className="mt-12 border-t pt-8">
+          <h2 className="text-lg font-extrabold">Ne plus gérer cette association</h2>
+          <p className="mt-1 mb-4 text-sm text-muted-foreground">
+            Vos modifications seront supprimées et quelqu&apos;un d&apos;autre pourra la revendiquer.
+          </p>
+          <ReleaseClaimButton associationId={association.id} />
+        </section>
       </div>
     </>
   )

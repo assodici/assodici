@@ -155,6 +155,8 @@ def _swap_into_place(pg, new_table: str, live_table: str) -> None:
     """
     with pg.cursor() as cur:
         cur.execute(f'CREATE POLICY "public read" ON {new_table} FOR SELECT USING (true)')
+        # Default privileges also hand out TRUNCATE/TRIGGER/REFERENCES; readers need SELECT only.
+        cur.execute(f"REVOKE ALL ON {new_table} FROM anon, authenticated")
         cur.execute(f"GRANT SELECT ON {new_table} TO anon, authenticated")
     pg.commit()
 
